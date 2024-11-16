@@ -2,6 +2,9 @@
 
 const tags = ['left', 'center', 'justify', 'right'];
 
+const processedLines = new WeakSet(); // Track which lines we've already processed
+
+
 exports.aceEditorCSS = (hookName, cb) => ['/ep_awwtysm/static/css/awwtysm.css'];
 
 const range = (start, end) => Array.from(
@@ -15,64 +18,104 @@ exports.aceRegisterBlockElements = () => tags;
 // Bind the event handler to the toolbar buttons
 exports.postAceInit = (hookName, context) => {
   console.log('postAceInit', context);
-  $('body').on('click', '.ep_awtyysm', function () {
-    const value = $(this).data('align');
-    const intValue = parseInt(value, 10);
-    if (!isNaN(intValue)) {
-      context.ace.callWithAce((ace) => {
-        ace.ace_doInsertAlign(intValue);
-      }, 'insertalign', true);
-    }
-  });
+  
+
+  const outer = parent.document.querySelector('iframe[name="ace_outer"]');
+  const outerDoc = outer.contentDocument;
+  
+  // Create overlay container if it doesn't exist
+  if (!outerDoc.getElementById('ep_awwtysm_overlay')) {
+    const overlay = outerDoc.createElement('div');
+    overlay.id = 'ep_awwtysm_overlay';
+    overlay.style.cssText = `
+      position: relative;
+      width: 30%;
+      pointer-events: none;
+      font-size: 0.9em;
+      z-index: 999;
+    `;
+    outerDoc.body.appendChild(overlay);
+  }
+
 
   return;
 };
 
-// On caret position change show the current align
+// WeakMap to store line -> result element mappings
+const lineResults = new WeakMap();
+
+const attachResultToLine = (line, result) => {
+  const node = line.domInfo.node;
+  const outer = parent.document.querySelector('iframe[name="ace_outer"]');
+  const outerDoc = outer.contentDocument;
+  const overlay = outerDoc.getElementById('ep_awwtysm_overlay');
+  
+  // Remove any existing result
+  const existingResult = lineResults.get(node);
+  if (existingResult && existingResult.parentNode) {
+    existingResult.remove();
+  }
+  
+  const resultSpan = outerDoc.createElement('span');
+  resultSpan.className = 'line-result';
+  resultSpan.textContent = `→ ${result}`;
+  
+  const position = getLinePosition(node);
+  
+  resultSpan.style.cssText = `
+    position: absolute;
+    right: 20px;
+    color: #888;
+    font-style: italic;
+    top: ${position.top}px;
+  `;
+  
+  overlay.appendChild(resultSpan);
+  
+  // Store the mapping
+  lineResults.set(node, resultSpan);
+};
+
+// Update positions in aceEditEvent
 exports.aceEditEvent = (hook, call) => {
   // If it's not a click or a key event and the text hasn't changed then do nothing
   const cs = call.callstack;
   if (!(cs.type === 'handleClick') && !(cs.type === 'handleKeyEvent') && !(cs.docTextChanged)) {
     return false;
   }
-  console.log('aceEditEvent', cs);
 
   // If it's an initial setup event then do nothing..
   if (cs.type === 'setBaseText' || cs.type === 'setup') return false;
 
-  // It looks like we should check to see if this section has this attribute
-  return setTimeout(() => { // avoid race condition..
-    const attributeManager = call.documentAttributeManager;
-    const rep = call.rep;
-    const activeAttributes = {};
-    // $("#align-selection").val(-2); // TODO commented this out
-
-    const firstLine = rep.selStart[0];
-    const lastLine = Math.max(firstLine, rep.selEnd[0] - ((rep.selEnd[1] === 0) ? 1 : 0));
-    let totalNumberOfLines = 0;
-
-    range(firstLine, lastLine + 1).forEach((line) => {
-      totalNumberOfLines++;
-      const attr = attributeManager.getAttributeOnLine(line, 'align');
-      if (!activeAttributes[attr]) {
-        activeAttributes[attr] = {};
-        activeAttributes[attr].count = 1;
-      } else {
-        activeAttributes[attr].count++;
+  // Update positions of all results
+  setTimeout(() => {
+    const inner = parent.document.querySelector('iframe[name="ace_outer"]')
+      .contentDocument.querySelector('iframe[name="ace_inner"]');
+    
+    // Get all lines that have results
+    const lines = inner.contentDocument.querySelectorAll('div');
+    lines.forEach(node => {
+      const resultSpan = lineResults.get(node);
+      if (resultSpan) {
+        const position = getLinePosition(node);
+        resultSpan.style.top = `${position.top}px`;
       }
     });
+  }, 0);
 
-    $.each(activeAttributes, (k, attr) => {
-      if (attr.count === totalNumberOfLines) {
-        // show as active class
-        // const ind = tags.indexOf(k);
-        // $("#align-selection").val(ind); // TODO commnented this out
-      }
-    });
-
-    return;
-  }, 250);
+  return false;
 };
+
+// Clean up results when lines are removed
+// exports.acePostWriteDomLineHTML = (hookName, args) => {
+//   const node = args.node;
+//   const resultSpan = lineResults.get(node);
+  
+//   if (resultSpan && !node.isConnected) {
+//     resultSpan.remove();
+//     lineResults.delete(node);
+//   }
+// };
 
 // Our align attribute will result in a heaading:left.... :left class
 exports.aceAttribsToClasses = (hook, context) => {
@@ -154,6 +197,63 @@ exports.aceInitialized = (hook, context) => {
   `;
   innerDoc.head.appendChild(style);
 
+
+
+  // Setup Intersection Observer for the inner iframe
+  setTimeout(() => {
+    const outer = parent.document.querySelector('iframe[name="ace_outer"]');
+    const inner = outer.contentDocument.querySelector('iframe[name="ace_inner"]');
+    
+    // Create observer
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const lineDiv = entry.target;
+          
+          // Skip if we've already processed this line
+          if (processedLines.has(lineDiv)) return;
+          
+          // Get the line object
+          const lineNumber = Array.from(lineDiv.parentNode.children).indexOf(lineDiv);
+          const line = context.rep.lines.atIndex(lineNumber);
+          
+          if (line && line.text.trim()) { // Only process non-empty lines
+            processedLines.add(lineDiv);
+            executeLineAndReport(line);
+          }
+        }
+      });
+    }, {
+      root: inner.contentDocument.body,
+      threshold: 0.5 // Line must be 50% visible
+    });
+
+    // Observe all existing lines
+    const observeLines = () => {
+      const lines = inner.contentDocument.querySelectorAll('div');
+      lines.forEach(line => observer.observe(line));
+    };
+
+    // Initial observation
+    observeLines();
+
+    // Setup mutation observer to watch for new lines
+    const mutationObserver = new MutationObserver((mutations) => {
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeName === 'DIV') {
+            observer.observe(node);
+          }
+        });
+      });
+    });
+
+    mutationObserver.observe(inner.contentDocument.body, {
+      childList: true,
+      subtree: true
+    });
+  }, 1000); //
+
   return;
 };
 
@@ -188,6 +288,7 @@ const getLinePosition = (node) => {
 const pulseLine = (node, success) => {
   const outer = parent.document.querySelector('iframe[name="ace_outer"]');
   const outerDoc = outer.contentDocument;
+  const overlay = outerDoc.getElementById('ep_awwtysm_overlay');
   
   const pulseOverlay = outerDoc.createElement('div');
   pulseOverlay.className = 'line-pulse';
@@ -196,7 +297,7 @@ const pulseLine = (node, success) => {
   
   pulseOverlay.style.cssText = `
     position: absolute;
-    left: 0;
+    width: 100vw;
     right: 0;
     background-color: ${success ? '#4CAF50' : '#f44336'};
     opacity: 0;
@@ -206,7 +307,7 @@ const pulseLine = (node, success) => {
     top: ${position.top}px;
   `;
   
-  outerDoc.body.appendChild(pulseOverlay);
+  overlay.appendChild(pulseOverlay);
 
   requestAnimationFrame(() => {
     pulseOverlay.animate([
@@ -230,37 +331,9 @@ const executeLine = (line) => {
   return line.text;
 };
 
-const attachResultToLine = (line, result) => {
-  const node = line.domInfo.node;
-  const outer = parent.document.querySelector('iframe[name="ace_outer"]');
-  const outerDoc = outer.contentDocument;
-  
-  // Remove any existing result
-  const existingResult = outerDoc.querySelector(`[data-line-result="${line.key}"]`);
-  if (existingResult) {
-    existingResult.remove();
-  }
-  
-  const resultSpan = outerDoc.createElement('span');
-  resultSpan.className = 'line-result';
-  resultSpan.setAttribute('data-line-result', line.key);
-  resultSpan.textContent = `→ ${result}`;
-  
-  const position = getLinePosition(node);
-  
-  resultSpan.style.cssText = `
-    position: absolute;
-    right: 20px;
-    color: #888;
-    font-style: italic;
-    pointer-events: none;
-    user-select: none;
-    max-width: 200px;
-    z-index: 1000;
-    top: ${position.top}px;
-  `;
-  
-  outerDoc.body.appendChild(resultSpan);
+const executeLineAndReport = (line) => {
+  const result = executeLine(line);
+  attachResultToLine(line, result);
 };
 
 exports.aceKeyEvent = (hook, context) => {
@@ -279,8 +352,7 @@ exports.aceKeyEvent = (hook, context) => {
     console.log('Current line:', currentLine);
     console.log('Line content:', line.text, line);
 
-    const result = executeLine(line);
-    attachResultToLine(line, result);
+    executeLineAndReport(line);
     
     // Prevent default enter behavior
     context.evt.preventDefault();
@@ -313,5 +385,12 @@ exports.postToolbarInit = (hookName, context) => {
   });
 
   return true;
+};
+
+
+// Add this function to clean up processed lines when content changes
+exports.aceSetAuthorStyle = (hookName, context) => {
+  // Clear processed lines when document content changes significantly
+  processedLines.clear();
 };
 
