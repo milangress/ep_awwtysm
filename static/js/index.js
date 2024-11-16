@@ -1,19 +1,16 @@
 'use strict';
 
-const tags = ['left', 'center', 'justify', 'right'];
-
 const processedLines = new WeakSet(); // Track which lines we've already processed
-
+// WeakMap to store line -> result element mappings
+const lineResults = new WeakMap();
 
 exports.aceEditorCSS = (hookName, cb) => ['/ep_awwtysm/static/css/awwtysm.css'];
+
 
 const range = (start, end) => Array.from(
     Array(Math.abs(end - start) + 1),
     (_, i) => start + i
 );
-
-exports.aceRegisterBlockElements = () => tags;
-
 
 // Bind the event handler to the toolbar buttons
 exports.postAceInit = (hookName, context) => {
@@ -40,9 +37,6 @@ exports.postAceInit = (hookName, context) => {
 
   return;
 };
-
-// WeakMap to store line -> result element mappings
-const lineResults = new WeakMap();
 
 const attachResultToLine = (line, result) => {
   const node = line.domInfo.node;
@@ -83,6 +77,7 @@ exports.aceEditEvent = (hook, call) => {
   if (!(cs.type === 'handleClick') && !(cs.type === 'handleKeyEvent') && !(cs.docTextChanged)) {
     return false;
   }
+  console.log('aceEditEvent', hook, call);
 
   // If it's an initial setup event then do nothing..
   if (cs.type === 'setBaseText' || cs.type === 'setup') return false;
@@ -117,32 +112,7 @@ exports.aceEditEvent = (hook, call) => {
 //   }
 // };
 
-// Our align attribute will result in a heaading:left.... :left class
-exports.aceAttribsToClasses = (hook, context) => {
-  if (context.key === 'align') {
-    return [`align:${context.value}`];
-  }
-};
 
-// Here we convert the class align:left into a tag
-exports.aceDomLineProcessLineAttributes = (name, context) => {
-  const cls = context.cls;
-  const alignType = /(?:^| )align:([A-Za-z0-9]*)/.exec(cls);
-  let tagIndex;
-  if (alignType) tagIndex = tags.indexOf(alignType[1]);
-  if (tagIndex !== undefined && tagIndex >= 0) {
-    const tag = tags[tagIndex];
-    const styles =
-      `width:100%;margin:0 auto;list-style-position:inside;display:block;text-align:${tag}`;
-    const modifier = {
-      preHtml: `<${tag} style="${styles}">`,
-      postHtml: `</${tag}>`,
-      processedMarker: true,
-    };
-    return [modifier];
-  }
-  return [];
-};
 
 
 // Once ace is initialized, we set ace_doInsertAlign and bind it to the context
@@ -151,26 +121,6 @@ exports.aceInitialized = (hook, context) => {
   // Passing a level >= 0 will set a alignment on the selected lines, level < 0
   // will remove it
   console.log('aceInitialized', context);
-  function doInsertAlign(level) {
-    const rep = this.rep;
-    const documentAttributeManager = this.documentAttributeManager;
-    if (!(rep.selStart && rep.selEnd) || (level >= 0 && tags[level] === undefined)) {
-      return;
-    }
-
-    const firstLine = rep.selStart[0];
-    const lastLine = Math.max(firstLine, rep.selEnd[0] - ((rep.selEnd[1] === 0) ? 1 : 0));
-    range(firstLine, lastLine).forEach((i) => {
-      if (level >= 0) {
-        documentAttributeManager.setAttributeOnLine(i, 'align', tags[level]);
-      } else {
-        documentAttributeManager.removeAttributeOnLine(i, 'align');
-      }
-    });
-  }
-
-  const editorInfo = context.editorInfo;
-  editorInfo.ace_doInsertAlign = doInsertAlign.bind(context);
 
   // Add CSS to the inner iframe
   const innerDoc = context.editorInfo.ace_getDocument();
@@ -257,12 +207,6 @@ exports.aceInitialized = (hook, context) => {
   return;
 };
 
-const align = (context, alignment) => {
-  context.ace.callWithAce((ace) => {
-    ace.ace_doInsertAlign(alignment);
-    ace.ace_focus();
-  }, 'insertalign', true);
-};
 
 // Helper function to get accurate line position
 const getLinePosition = (node) => {
@@ -366,31 +310,24 @@ exports.aceSelectionChanged = (hook, context) => {
   return true;
 };
 
-exports.postToolbarInit = (hookName, context) => {
-  const editbar = context.toolbar; // toolbar is actually editbar - http://etherpad.org/doc/v1.5.7/#index_editbar
-  editbar.registerCommand('alignLeft', () => {
-    align(context, 0);
-  });
-
-  editbar.registerCommand('alignCenter', () => {
-    align(context, 1);
-  });
-
-  editbar.registerCommand('alignJustify', () => {
-    align(context, 2);
-  });
-
-  editbar.registerCommand('alignRight', () => {
-    align(context, 3);
-  });
-
+exports.acePostWriteDomLineHTML = (hookName, context) => {
+  console.log('acePostWriteDomLineHTML', context);
   return true;
 };
 
+exports.postToolbarInit = (hookName, context) => {
+  const editbar = context.toolbar; // toolbar is actually editbar - http://etherpad.org/doc/v1.5.7/#index_editbar
+  editbar.registerCommand('run', () => {
+    const rep = context.rep;
+    const currentLine = rep.selStart[0];
+    const line = rep.lines.atIndex(currentLine);
+    executeLineAndReport(line);
+  });
+  editbar.registerCommand('run-all', () => {
+    const rep = context.rep;
+    rep.lines.forEach(line => executeLineAndReport(line));
+  });
 
-// Add this function to clean up processed lines when content changes
-exports.aceSetAuthorStyle = (hookName, context) => {
-  // Clear processed lines when document content changes significantly
-  processedLines.clear();
+  return true;
 };
 
