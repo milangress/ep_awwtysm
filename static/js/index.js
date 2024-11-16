@@ -164,22 +164,36 @@ const align = (context, alignment) => {
   }, 'insertalign', true);
 };
 
-const pulseLine = (node, success) => {
-  // Get the outer ace iframe from parent document
-  let outerDoc = parent.parent.document;
-  const outer = outerDoc.getElementsByName('ace_outer')[0];
-  const outerWindow = outer.contentWindow;
-  outerDoc = outerWindow.document;
+// Helper function to get accurate line position
+const getLinePosition = (node) => {
+  // Get all required elements
+  const outer = parent.document.querySelector('iframe[name="ace_outer"]');
+  const inner = outer.contentDocument.querySelector('iframe[name="ace_inner"]');
 
-  // Create pulse overlay
+  // Get the line's position relative to inner iframe
+  const lineRect = node.getBoundingClientRect();
+  
+  // Get inner iframe's padding/margin
+  const innerStyle = window.getComputedStyle(inner);
+  const innerPaddingTop = parseInt(innerStyle.paddingTop, 10) || 0;
+  const innerMarginTop = parseInt(innerStyle.marginTop, 10) || 0;
+  
+  // Calculate top position adding the inner iframe's padding/margin
+  return {
+    top: lineRect.top + innerPaddingTop + innerMarginTop,
+    height: lineRect.height
+  };
+};
+
+const pulseLine = (node, success) => {
+  const outer = parent.document.querySelector('iframe[name="ace_outer"]');
+  const outerDoc = outer.contentDocument;
+  
   const pulseOverlay = outerDoc.createElement('div');
   pulseOverlay.className = 'line-pulse';
   
-  // Get positions, accounting for both iframe offsets
-  const lineRect = node.getBoundingClientRect();
-  const iframeRect = outer.getBoundingClientRect();
+  const position = getLinePosition(node);
   
-  // Position the overlay absolutely in the outer frame
   pulseOverlay.style.cssText = `
     position: absolute;
     left: 0;
@@ -188,14 +202,12 @@ const pulseLine = (node, success) => {
     opacity: 0;
     pointer-events: none;
     z-index: 999;
-    height: ${lineRect.height}px;
-    top: ${lineRect.top + iframeRect.top}px;
+    height: ${position.height}px;
+    top: ${position.top}px;
   `;
   
-  // Add to outer frame
   outerDoc.body.appendChild(pulseOverlay);
 
-  // Animate and remove
   requestAnimationFrame(() => {
     pulseOverlay.animate([
       { opacity: 0.2 },
@@ -220,13 +232,8 @@ const executeLine = (line) => {
 
 const attachResultToLine = (line, result) => {
   const node = line.domInfo.node;
-  
-  // Get the outer iframe document
-  debugger;
-  let outerDoc = parent.parent.document;
-  const outer = outerDoc.getElementsByName('ace_outer')[0];
-  const outerWindow = outer.contentWindow;
-  outerDoc = outerWindow.document;
+  const outer = parent.document.querySelector('iframe[name="ace_outer"]');
+  const outerDoc = outer.contentDocument;
   
   // Remove any existing result
   const existingResult = outerDoc.querySelector(`[data-line-result="${line.key}"]`);
@@ -234,13 +241,13 @@ const attachResultToLine = (line, result) => {
     existingResult.remove();
   }
   
-  // Create result element
   const resultSpan = outerDoc.createElement('span');
   resultSpan.className = 'line-result';
   resultSpan.setAttribute('data-line-result', line.key);
   resultSpan.textContent = `→ ${result}`;
   
-  // Position the result absolutely
+  const position = getLinePosition(node);
+  
   resultSpan.style.cssText = `
     position: absolute;
     right: 20px;
@@ -250,14 +257,9 @@ const attachResultToLine = (line, result) => {
     user-select: none;
     max-width: 200px;
     z-index: 1000;
+    top: ${position.top}px;
   `;
   
-  // Set the top position to match the line's position
-  const lineRect = node.getBoundingClientRect();
-  const iframeRect = outer.getBoundingClientRect();
-  resultSpan.style.top = `${lineRect.top + iframeRect.top}px`;
-  
-  // Add result to the outer iframe's body
   outerDoc.body.appendChild(resultSpan);
 };
 
@@ -312,3 +314,4 @@ exports.postToolbarInit = (hookName, context) => {
 
   return true;
 };
+

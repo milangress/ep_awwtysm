@@ -14,7 +14,8 @@
         "aceRegisterBlockElements": "ep_awwtysm/static/js/index",
         "aceKeyEvent": "ep_awwtysm/static/js/index",
         "aceSelectionChanged": "ep_awwtysm/static/js/index",
-        "aceEditorCSS": "ep_awwtysm/static/js/index"
+        "aceEditorCSS": "ep_awwtysm/static/js/index",
+        "acePostWriteDomLineHTML": "ep_awwtysm/static/js/index"
       },
       "hooks": {
         "eejsBlock_editbarMenuLeft": "ep_awwtysm/index",
