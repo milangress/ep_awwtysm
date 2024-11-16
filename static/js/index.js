@@ -2,7 +2,7 @@
 
 const tags = ['left', 'center', 'justify', 'right'];
 
-
+exports.aceEditorCSS = (hookName, cb) => ['/ep_awwtysm/static/css/awwtysm.css'];
 
 const range = (start, end) => Array.from(
     Array(Math.abs(end - start) + 1),
@@ -104,6 +104,7 @@ exports.aceDomLineProcessLineAttributes = (name, context) => {
 
 // Once ace is initialized, we set ace_doInsertAlign and bind it to the context
 exports.aceInitialized = (hook, context) => {
+  
   // Passing a level >= 0 will set a alignment on the selected lines, level < 0
   // will remove it
   console.log('aceInitialized', context);
@@ -127,6 +128,32 @@ exports.aceInitialized = (hook, context) => {
 
   const editorInfo = context.editorInfo;
   editorInfo.ace_doInsertAlign = doInsertAlign.bind(context);
+
+  // Add CSS to the inner iframe
+  const innerDoc = context.editorInfo.ace_getDocument();
+  const style = innerDoc.createElement('style');
+  style.textContent = `
+    .line-result {
+      z-index: 1000;
+      font-size: 12px;
+      line-height: 16px;
+    }
+    
+    body {
+      position: relative;
+    }
+
+    .line-pulse {
+      animation: pulse 1s ease-out;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.2; }
+      100% { opacity: 0; }
+    }
+  `;
+  innerDoc.head.appendChild(style);
+
   return;
 };
 
@@ -137,9 +164,127 @@ const align = (context, alignment) => {
   }, 'insertalign', true);
 };
 
+const pulseLine = (node, success) => {
+  // Get the outer ace iframe from parent document
+  let outerDoc = parent.parent.document;
+  const outer = outerDoc.getElementsByName('ace_outer')[0];
+  const outerWindow = outer.contentWindow;
+  outerDoc = outerWindow.document;
+
+  // Create pulse overlay
+  const pulseOverlay = outerDoc.createElement('div');
+  pulseOverlay.className = 'line-pulse';
+  
+  // Get positions, accounting for both iframe offsets
+  const lineRect = node.getBoundingClientRect();
+  const iframeRect = outer.getBoundingClientRect();
+  
+  // Position the overlay absolutely in the outer frame
+  pulseOverlay.style.cssText = `
+    position: absolute;
+    left: 0;
+    right: 0;
+    background-color: ${success ? '#4CAF50' : '#f44336'};
+    opacity: 0;
+    pointer-events: none;
+    z-index: 999;
+    height: ${lineRect.height}px;
+    top: ${lineRect.top + iframeRect.top}px;
+  `;
+  
+  // Add to outer frame
+  outerDoc.body.appendChild(pulseOverlay);
+
+  // Animate and remove
+  requestAnimationFrame(() => {
+    pulseOverlay.animate([
+      { opacity: 0.2 },
+      { opacity: 0 }
+    ], {
+      duration: 1000,
+      easing: 'ease-out'
+    }).onfinish = () => {
+      pulseOverlay.remove();
+    };
+  });
+};
+
+const executeLine = (line) => {
+  console.log('Executing line:', line.text);
+  // For now, just return the line text as the result
+  // and randomly succeed/fail for testing
+  const success = Math.random() > 0.5;
+  pulseLine(line.domInfo.node, success);
+  return line.text;
+};
+
+const attachResultToLine = (line, result) => {
+  const node = line.domInfo.node;
+  
+  // Get the outer iframe document
+  debugger;
+  let outerDoc = parent.parent.document;
+  const outer = outerDoc.getElementsByName('ace_outer')[0];
+  const outerWindow = outer.contentWindow;
+  outerDoc = outerWindow.document;
+  
+  // Remove any existing result
+  const existingResult = outerDoc.querySelector(`[data-line-result="${line.key}"]`);
+  if (existingResult) {
+    existingResult.remove();
+  }
+  
+  // Create result element
+  const resultSpan = outerDoc.createElement('span');
+  resultSpan.className = 'line-result';
+  resultSpan.setAttribute('data-line-result', line.key);
+  resultSpan.textContent = `→ ${result}`;
+  
+  // Position the result absolutely
+  resultSpan.style.cssText = `
+    position: absolute;
+    right: 20px;
+    color: #888;
+    font-style: italic;
+    pointer-events: none;
+    user-select: none;
+    max-width: 200px;
+    z-index: 1000;
+  `;
+  
+  // Set the top position to match the line's position
+  const lineRect = node.getBoundingClientRect();
+  const iframeRect = outer.getBoundingClientRect();
+  resultSpan.style.top = `${lineRect.top + iframeRect.top}px`;
+  
+  // Add result to the outer iframe's body
+  outerDoc.body.appendChild(resultSpan);
+};
+
 exports.aceKeyEvent = (hook, context) => {
-  console.log('aceKeyEvent', context);
-  return true;
+  // Check if it's an enter key press with option/alt key
+  if (context.evt.type === 'keydown' && 
+      context.evt.keyCode === 13 && // Enter key
+      context.evt.altKey) { // Option/Alt key
+    
+    // Get the current line number
+    const rep = context.rep;
+    const currentLine = rep.selStart[0];
+    
+    // Get the line content
+    const line = rep.lines.atIndex(currentLine);
+    
+    console.log('Current line:', currentLine);
+    console.log('Line content:', line.text, line);
+
+    const result = executeLine(line);
+    attachResultToLine(line, result);
+    
+    // Prevent default enter behavior
+    context.evt.preventDefault();
+    return true;
+  }
+  return false;
 };
 
 exports.aceSelectionChanged = (hook, context) => {
