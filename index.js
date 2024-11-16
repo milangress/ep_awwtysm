@@ -7,12 +7,6 @@ const settings = require('ep_etherpad-lite/node/utils/Settings');
 exports.eejsBlock_editbarMenuLeft = (hookName, args, cb) => {
   if (args.renderContext.isReadOnly) return cb();
 
-  for (const button of ['alignLeft', 'alignJustify', 'alignCenter', 'alignRight']) {
-    if (JSON.stringify(settings.toolbar).indexOf(button) > -1) {
-      return cb();
-    }
-  }
-
   args.content += eejs.require('ep_awwtysm/templates/editbarButtons.ejs');
   return cb();
 };
@@ -55,34 +49,13 @@ exports.getLineHTMLForExport = async (hookName, context) => {
 exports.padInitToolbar = (hookName, args, cb) => {
   const toolbar = args.toolbar;
 
-  const alignLeftButton = toolbar.button({
-    command: 'alignLeft',
-    localizationId: 'ep_awwtysm.toolbar.left.title',
-    class: 'buttonicon buttonicon-align-left ep_awwtysm ep_awwtysm_left',
+  const runButton = toolbar.button({
+    command: 'run',
+    localizationId: 'ep_awwtysm.toolbar.run.title',
+    class: 'buttonicon buttonicon-run ep_awwtysm ep_awwtysm_run',
   });
 
-  const alignCenterButton = toolbar.button({
-    command: 'alignCenter',
-    localizationId: 'ep_awwtysm.toolbar.center.title',
-    class: 'buttonicon buttonicon-align-center ep_awwtysm ep_awwtysm_center',
-  });
-
-  const alignJustifyButton = toolbar.button({
-    command: 'alignJustify',
-    localizationId: 'ep_awwtysm.toolbar.justify.title',
-    class: 'buttonicon buttonicon-align-justify ep_awwtysm ep_awwtysm_justify',
-  });
-
-  const alignRightButton = toolbar.button({
-    command: 'alignRight',
-    localizationId: 'ep_awwtysm.toolbar.right.title',
-    class: 'buttonicon buttonicon-align-right ep_awwtysm ep_awwtysm_right',
-  });
-
-  toolbar.registerButton('alignLeft', alignLeftButton);
-  toolbar.registerButton('alignCenter', alignCenterButton);
-  toolbar.registerButton('alignJustify', alignJustifyButton);
-  toolbar.registerButton('alignRight', alignRightButton);
+  toolbar.registerButton('run', runButton);
 
   return cb();
 };

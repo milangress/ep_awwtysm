@@ -14,7 +14,7 @@ exports.aceRegisterBlockElements = () => tags;
 
 // Bind the event handler to the toolbar buttons
 exports.postAceInit = (hookName, context) => {
-  console.log('postAceInit');
+  console.log('postAceInit', context);
   $('body').on('click', '.ep_awtyysm', function () {
     const value = $(this).data('align');
     const intValue = parseInt(value, 10);
@@ -32,10 +32,11 @@ exports.postAceInit = (hookName, context) => {
 exports.aceEditEvent = (hook, call) => {
   // If it's not a click or a key event and the text hasn't changed then do nothing
   const cs = call.callstack;
-  console.log('aceEditEvent', cs);
   if (!(cs.type === 'handleClick') && !(cs.type === 'handleKeyEvent') && !(cs.docTextChanged)) {
     return false;
   }
+  console.log('aceEditEvent', cs);
+
   // If it's an initial setup event then do nothing..
   if (cs.type === 'setBaseText' || cs.type === 'setup') return false;
 
@@ -134,6 +135,16 @@ const align = (context, alignment) => {
     ace.ace_doInsertAlign(alignment);
     ace.ace_focus();
   }, 'insertalign', true);
+};
+
+exports.aceKeyEvent = (hook, context) => {
+  console.log('aceKeyEvent', context);
+  return true;
+};
+
+exports.aceSelectionChanged = (hook, context) => {
+  console.log('aceSelectionChanged', context);
+  return true;
 };
 
 exports.postToolbarInit = (hookName, context) => {
