@@ -7,10 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      '@maverick-js/signals':
-        specifier: ^6.0.0
-        version: 6.0.0
     devDependencies:
       '@types/mocha':
         specifier: ^10.0.6
@@ -65,9 +61,6 @@ packages:
 
   '@humanwhocodes/object-schema@2.0.2':
     resolution: {integrity: sha512-6EwiSjwWYP7pTckG6I5eyFANjPhmPjUX9JRLUSfNPC7FX7zK9gyZAfUEaECL6ALTpGX5AjnBq3C9XmVWPitNpw==}
-
-  '@maverick-js/signals@6.0.0':
-    resolution: {integrity: sha512-aPAxQOjxcGaLpjMcfE0mRuMgnCVLfdPSGINYmKDjTbTfY37lZdz9CGnVDrkr+svNSADZbUVk7oPVjXA2+vtxYg==}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -1208,8 +1201,6 @@ snapshots:
   '@humanwhocodes/module-importer@1.0.1': {}
 
   '@humanwhocodes/object-schema@2.0.2': {}
-
-  '@maverick-js/signals@6.0.0': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:

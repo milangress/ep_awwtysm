@@ -1,18 +1,5 @@
 'use strict';
 
-const MaverickSignals = require('@maverick-js/signals/dist/signals.umd.js');
-const {root, signal, computed, effect} = MaverickSignals;
-
-root((dispose) => {
-  const $a = signal(10);
-  const $b = computed(() => $a());
-
-  effect(() => console.log($b()));
-
-  // Disposes of `$a`, $b`, and `effect`.
-  dispose();
-});
-
 const processedLines = new WeakSet(); // Track which lines we've already processed
 // WeakMap to store line -> result element mappings
 const lineResults = new WeakMap();

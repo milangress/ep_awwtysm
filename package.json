@@ -38,8 +38,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "@maverick-js/signals": "^6.0.0"
   }
 }
