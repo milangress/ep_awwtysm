@@ -1,5 +1,18 @@
 'use strict';
 
+const MaverickSignals = require('@maverick-js/signals/dist/signals.umd.js');
+const {root, signal, computed, effect} = MaverickSignals;
+
+root((dispose) => {
+  const $a = signal(10);
+  const $b = computed(() => $a());
+
+  effect(() => console.log($b()));
+
+  // Disposes of `$a`, $b`, and `effect`.
+  dispose();
+});
+
 const processedLines = new WeakSet(); // Track which lines we've already processed
 // WeakMap to store line -> result element mappings
 const lineResults = new WeakMap();
@@ -37,11 +50,11 @@ const getLinePosition = (node) => {
 // Bind the event handler to the toolbar buttons
 exports.postAceInit = (hookName, context) => {
   console.log('postAceInit', context);
-  
+
 
   const outer = parent.document.querySelector('iframe[name="ace_outer"]');
   const outerDoc = outer.contentDocument;
-  
+
   // Create overlay container if it doesn't exist
   if (!outerDoc.getElementById('ep_awwtysm_overlay')) {
     const overlay = outerDoc.createElement('div');
@@ -65,19 +78,19 @@ const attachResultToLine = (line, result) => {
   const outer = parent.document.querySelector('iframe[name="ace_outer"]');
   const outerDoc = outer.contentDocument;
   const overlay = outerDoc.getElementById('ep_awwtysm_overlay');
-  
+
   // Remove any existing result
   const existingResult = lineResults.get(node);
   if (existingResult && existingResult.parentNode) {
     existingResult.remove();
   }
-  
+
   const resultSpan = outerDoc.createElement('span');
   resultSpan.className = 'line-result';
   resultSpan.textContent = `→ ${result}`;
-  
+
   const position = getLinePosition(node);
-  
+
   resultSpan.style.cssText = `
     position: absolute;
     right: 20px;
@@ -85,9 +98,9 @@ const attachResultToLine = (line, result) => {
     font-style: italic;
     top: ${position.top}px;
   `;
-  
+
   overlay.appendChild(resultSpan);
-  
+
   // Store the mapping
   lineResults.set(node, resultSpan);
 };
@@ -107,8 +120,8 @@ exports.aceEditEvent = (hook, call) => {
   // Update positions of all results
   setTimeout(() => {
     const inner = parent.document.querySelector('iframe[name="ace_outer"]')
-      .contentDocument.querySelector('iframe[name="ace_inner"]');
-    
+        .contentDocument.querySelector('iframe[name="ace_inner"]');
+
     // Get all lines that have results
     const lines = inner.contentDocument.querySelectorAll('div');
     lines.forEach((node) => {
@@ -141,12 +154,12 @@ const pulseLine = (node, success) => {
   const outer = parent.document.querySelector('iframe[name="ace_outer"]');
   const outerDoc = outer.contentDocument;
   const overlay = outerDoc.getElementById('ep_awwtysm_overlay');
-  
+
   const pulseOverlay = outerDoc.createElement('div');
   pulseOverlay.className = 'line-pulse';
-  
+
   const position = getLinePosition(node);
-  
+
   pulseOverlay.style.cssText = `
     position: absolute;
     width: 100vw;
@@ -158,7 +171,7 @@ const pulseLine = (node, success) => {
     height: ${position.height}px;
     top: ${position.top}px;
   `;
-  
+
   overlay.appendChild(pulseOverlay);
 
   requestAnimationFrame(() => {
@@ -190,21 +203,21 @@ const executeLineAndReport = (line) => {
 
 exports.aceKeyEvent = (hook, context) => {
   // Check if it's an enter key press with option/alt key
-  if (context.evt.type === 'keydown' && 
+  if (context.evt.type === 'keydown' &&
       context.evt.keyCode === 13 && // Enter key
       context.evt.altKey) { // Option/Alt key
     // Get the current line number
     const rep = context.rep;
     const currentLine = rep.selStart[0];
-    
+
     // Get the line content
     const line = rep.lines.atIndex(currentLine);
-    
+
     console.log('Current line:', currentLine);
     console.log('Line content:', line.text, line);
 
     executeLineAndReport(line);
-    
+
     // Prevent default enter behavior
     context.evt.preventDefault();
     return true;
