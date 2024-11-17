@@ -21,7 +21,13 @@ exports.padInitToolbar = (hookName, args, cb) => {
     class: 'buttonicon buttonicon-run ep_awwtysm ep_awwtysm_run',
   });
 
-  toolbar.registerButton('run', runButton);
+  const runAllButton = toolbar.button({
+    command: 'run_all',
+    localizationId: 'ep_awwtysm.toolbar.run_all.title',
+    class: 'buttonicon buttonicon-run-all ep_awwtysm ep_awwtysm_run_all',
+  });
 
+  toolbar.registerButton('run', runButton);
+  toolbar.registerButton('run_all', runAllButton);
   return cb();
 };
