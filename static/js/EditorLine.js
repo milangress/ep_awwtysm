@@ -8,6 +8,16 @@ class EditorLine {
     this.$lineNumber = signal(lineNumber);
     this.$text = signal(text);
     this.$result = signal(null);
+    this.$resultTimestamp = signal(new Date().getTime());
+    this.$currentTimestamp = signal(new Date().getTime());
+    this.interval = null;
+
+    this.$resultTimeAgo = computed(() => {
+      const duration = this.$currentTimestamp.value - this.$resultTimestamp.value;
+      const timeAgo = this.formatTimeAgo(duration);
+      return timeAgo;
+    });
+
     this.$isProcessed = signal(false);
     this.$position = signal(this.calculatePosition());
     this.$resultElement = signal(this.createLineResultElement());
@@ -22,13 +32,22 @@ class EditorLine {
 
     effect(() => console.log('position', this.$position.value));
     effect(() => {
+      if (this.$resultElement.value && this.$result.value) {
+        const result = this.$result.value;
+        this.$resultElement.value.message.innerHTML = `→ ${result}`;
+        this.$resultElement.value.div.style.top = `${this.$position.value.top}px`;
+      }
+    });
+    effect(() => {
       if (this.$resultElement.value) {
-        this.$resultElement.value.innerHTML = `→ ${this.$result.value}`;
+        this.$resultElement.value.timeAgo.innerHTML = this.$resultTimeAgo.value;
       }
     });
     effect(() => {
       if (this.$isDirty.value) {
-        this.$resultElement.value.style.backgroundColor = '#ffcccc';
+        this.$resultElement.value.div.style.opacity = '0.5';
+      } else {
+        this.$resultElement.value.div.style.opacity = '1';
       }
     });
   }
@@ -68,10 +87,14 @@ class EditorLine {
   }
 
   updatePosition() {
+    if (this.$isDirty.value) return;
     console.log('updatePosition', this.$position.value, this.domNode);
-    this.$position.value = this.calculatePosition();
-    if (this.$resultElement.value) {
-      this.$resultElement.value.style.top = `${this.$position.value.top}px`;
+    const newPosition = this.calculatePosition();
+    if (newPosition.height > 0) {
+      this.$position.value = newPosition;
+    } else {
+      this.$isDirty.value = true;
+      console.log('height is 0', this.domNode);
     }
   }
 
@@ -80,10 +103,10 @@ class EditorLine {
     const outerDoc = outer.contentDocument;
     const overlay = outerDoc.getElementById('ep_awwtysm_overlay');
 
-    const resultSpan = outerDoc.createElement('span');
-    resultSpan.className = 'line-result';
+    const resultDiv = outerDoc.createElement('div');
+    resultDiv.className = 'line-result';
 
-    resultSpan.style.cssText = `
+    resultDiv.style.cssText = `
       position: absolute;
       right: 20px;
       color: #888;
@@ -91,8 +114,25 @@ class EditorLine {
       top: ${this.$position.value.top}px;
     `;
 
-    overlay.appendChild(resultSpan);
-    return resultSpan;
+    overlay.appendChild(resultDiv);
+
+    const timeAgo = outerDoc.createElement('p');
+    timeAgo.className = 'time-ago';
+    timeAgo.style.cssText = `
+      font-size: 0.8em;
+      text-align: right;
+      opacity: 0.8;
+    `;
+    resultDiv.appendChild(timeAgo);
+
+    const resultSpan = outerDoc.createElement('p');
+    resultSpan.className = 'result';
+    resultDiv.appendChild(resultSpan);
+    return {
+      div: resultDiv,
+      message: resultSpan,
+      timeAgo,
+    };
   }
 
   execute() {
@@ -101,6 +141,10 @@ class EditorLine {
     this.pulse(success);
     this.$result.value = this.$text.value; // Mock result
     this.$isProcessed.value = true;
+    this.$resultTimestamp.value = new Date().getTime();
+    this.interval = setInterval(() => {
+      this.$currentTimestamp.value = new Date().getTime();
+    }, 1000);
     return this.$result.value;
   }
 
@@ -138,7 +182,7 @@ class EditorLine {
 
   cleanup() {
     if (this.$resultElement.value) {
-      this.$resultElement.value.remove();
+      this.$resultElement.value.div.remove();
     }
   }
 
@@ -146,8 +190,32 @@ class EditorLine {
     this.cleanup();
     this.domNode.remove();
   }
+  checkIfDirty() {
+    console.log('checkIfDirty', this.domNode.id);
+    const isDirty = !this.domNode.id.startsWith('magicdomid');
+    this.$isDirty.value = isDirty;
+    return isDirty;
+  }
+
   get lineNumber() {
     return this.$lineNumber.value;
+  }
+
+  formatTimeAgo(ms) {
+    if (ms < 1000) return 'just now';
+
+    const rtf = new Intl.RelativeTimeFormat('en', {numeric: 'auto', style: 'narrow'});
+    const seconds = Math.floor(ms / 1000);
+
+    if (seconds < 60) {
+      return rtf.format(-seconds, 'second');
+    }
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) {
+      return rtf.format(-minutes, 'minute');
+    }
+    const hours = Math.floor(minutes / 60);
+    return rtf.format(-hours, 'hour');
   }
 }
 

@@ -31,7 +31,7 @@ class EditorLineManager {
   setLineDirty(lineNumber) {
     const line = this.getLine(lineNumber);
     if (line) {
-      line.$isDirty.value = true;
+      line.checkIfDirty();
       this.$dirtyLines.value = new Set([...this.$dirtyLines.value, lineNumber]);
     }
   }
@@ -42,7 +42,7 @@ class EditorLineManager {
       dirtyLines.add(i);
       const line = this.getLine(i);
       if (line) {
-        line.$isDirty.value = true;
+        line.checkIfDirty();
       }
     }
     this.$dirtyLines.value = dirtyLines;
@@ -58,15 +58,20 @@ class EditorLineManager {
       existingLine.domNode = domInfo.node;
       existingLine.updatePosition();
       return existingLine;
+    } else if (existingLine && isDirty) {
+      existingLine.cleanup();
     }
 
     // If line is dirty or doesn't exist, create new instance
     const newLine = new EditorLine(domInfo.node, lineNumber, text);
 
+    console.log('createOrUpdateLine', lineNumber, text);
     // Update lines map
     const updatedLines = new Map(this.$lines.value);
     updatedLines.set(lineNumber, newLine);
     this.$lines.value = updatedLines;
+
+    console.log('this.$lines.value', this.$lines.value);
 
     // Remove from dirty lines if it was dirty
     if (isDirty) {

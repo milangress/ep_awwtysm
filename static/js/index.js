@@ -22,11 +22,12 @@ exports.aceEditEvent = (hook, call) => {
 
   console.log('aceEditEvent', call);
 
-  const startLine = call.rep.selStart[0];
-  const endLine = call.rep.selEnd[0];
-
-  // Mark affected lines as dirty
-  lineManager.setLinesDirty(startLine, endLine);
+  if (!call.repChanged) {
+    const startLine = call.rep.selStart[0];
+    const endLine = call.rep.selEnd[0];
+    // Mark affected lines as dirty
+    lineManager.setLinesDirty(startLine, endLine);
+  }
 
   // Update positions of all lines
   setTimeout(() => {
@@ -85,7 +86,10 @@ exports.aceKeyEvent = (hook, context) => {
     console.log('Current line:', currentLine);
     console.log('Line content:', line.text, line);
 
-    executeLineAndReport(line);
+    executeLineAndReport({
+      ...line,
+      lineNumber: currentLine,
+    });
 
     // Prevent default enter behavior
     context.evt.preventDefault();
