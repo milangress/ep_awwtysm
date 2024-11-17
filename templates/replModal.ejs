@@ -1,0 +1,21 @@
+<div id="awwtysmReplModal" class="popup">
+  <% e.begin_block("awwtysmReplModal"); %>
+  <div class="popup-content awwModalOverflow">
+    <div class="awwtysmEditor awwtysmEditor-text">
+      <div class="awwtysmEditorStackViewer">&nbsp;</div>
+      <div class="awwtysmEditorText">
+        <div class="awwtysmEditorPrevLines"></div>
+        <textarea class="awwtysmEditorInput"></textarea>
+        <div class="awwtysmEditorAutocomplete"></div>
+      </div>
+    </div>
+    <div class="awwtysmReplControls">
+      <button id="awwtysmReplResetButton" class="awwtysmEditorReset btn">Reset</button>
+      <div id="standaloneReplSwitch" class="acl-write" style="pointer-events: auto;">
+        <input type="checkbox" id="standaloneReplSwitchInput" checked>
+        <label for="standaloneReplSwitchInput" aria-label="Standalone REPL (no VM)" style="pointer-events: auto;">Standalone REPL (no VM)</label>
+      </div>
+    </div>
+  </div>
+  <% e.end_block(); %>
+</div>

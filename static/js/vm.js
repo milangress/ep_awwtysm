@@ -3,6 +3,7 @@
 const {signal, effect} = require('@preact/signals-core');
 const {Aww} = require('./reherser');
 const {createHydra} = require('./reherser');
+const ReplModal = require('./ReplModal');
 
 const Stage = require('./Stage');
 const stage = Stage.getInstance();
@@ -37,6 +38,8 @@ const awwHistory = signal([]);
     canvas,
   });
   new Aww((api) => awwApi = api, hydraInstance);
+
+  new ReplModal(hydraInstance);
 
   awwApi.onLog((log) => {
     logs.value.push(log);
@@ -229,6 +232,7 @@ const vm = () => ({
     // Use the existing awwApi instance
     context.value = awwApi;
     awwApi.readLine(line, (output) => {
+      console.log('Output:', output);
       lastOutput.value = output;
     });
 

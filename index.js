@@ -14,6 +14,7 @@ exports.eejsBlock_editbarMenuLeft = (hookName, args, cb) => {
 exports.eejsBlock_editorContainerBox = (hookName, args, cb) => {
   args.content += eejs.require('ep_awwtysm/templates/logsModal.ejs', {}, module);
   args.content += eejs.require('ep_awwtysm/templates/mainModal.ejs', {}, module);
+  args.content += eejs.require('ep_awwtysm/templates/replModal.ejs', {}, module);
   return cb();
 };
 

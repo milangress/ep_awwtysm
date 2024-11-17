@@ -21,6 +21,11 @@ if (typeof window !== 'undefined' && !window.process) {
   };
 }
 
+function StackUnderflowError(name) {
+  console.warn("Stack underflow in " + name);
+  this.message = "Stack underflow in " + name;
+}
+
 function Stack(name) {
   var arr = [];
 
@@ -36,8 +41,7 @@ function Stack(name) {
       if (arr.length > 0) {
         return arr.pop();
       } else {
-        console.warn("Stack underflow in " + name);
-        throw new StackUnderflowError();
+        throw new StackUnderflowError(name);
       }
     },
     print: function () {
@@ -14839,13 +14843,12 @@ function setupHydraWords(addToDictionary, { hydra, synth }) {
         console.log("getArgs() context.stack:", context.stack.print(), 'defaults: ', defaults);
         const args = [];
         try {
-            // Try to pop count number of items from stack
             for (let i = 0; i < count; i++) {
-                args.unshift(context.stack.pop());
+                args.push(context.stack.pop());
             }
         } catch (e) {
             while (args.length < count) {
-                args.unshift(defaults[args.length]);
+                args.push(defaults[args.length]);
             }
         }
         console.log("getArgs() args:", args);
@@ -15039,6 +15042,10 @@ class Aww {
     return func;
   }
 
+  const wordNotFound = (word) => {
+    this.message += word + " ? ";
+  };
+
   // Convert token into an action that executes that token's behavior
   function tokenToAction(token) {
     if (!token) return null;
@@ -15060,6 +15067,8 @@ class Aww {
         context.stack.push(+word);
       });
     }
+    wordNotFound(word);
+    
     context.logger.trace('tokenToAction', `Token: ${JSON.stringify(token)} -> null`);
     return null;
   }
@@ -15142,8 +15151,8 @@ class Aww {
         case "constant":
           createConstant(tokenizer.nextToken().value, context.stack.pop());
           break;
-        case ";":
-          endDefinition();
+        case ":":
+          startDefinition(tokenizer.nextToken().value);
           break;
         default:
           throw new Error("Unknown control code: " + action.code);
@@ -15195,22 +15204,32 @@ class Aww {
       } else if (peekNextToken && isCapitalized(token.value) && tokenToAction(peekNextToken)?.code === 'is') {
         context.logger.trace('Runtime', `Handling non-permanent definition: ${token.value} ${peekAction2.value}`);
         handleDefinitionTypeIS(false);
+        return processTokens()
       } else if (peekAction?.code === ':') {
         tokenizer.nextToken(); // consume ':'
         context.logger.trace('Runtime', `Handling colon definition: ${token.value}`);
         var word = tokenizer.nextToken().value;
         context.parsedTokens.push(word);
         startDefinition(word);
+        return processTokens();
       } else if (currentDefinition) {
         context.logger.trace('Runtime', `Handling current definition: ${token.value}`);
         var action = tokenToAction(tokenizer.nextToken());
         addActionToCurrentDefinition(action);
+        return processTokens();
       } else {
         context.logger.trace('Runtime', `Handling default runtime action: ${token.value}`);
         var action = tokenToAction(tokenizer.nextToken());
-        executeRuntimeAction(tokenizer, action, handleOutput);
+        executeRuntimeAction(tokenizer, action, function (output) {
+          context.logger.info('Runtime', `Handling output: ${output}`);
+          context.addOutput(output);
+          if (context.pause) {
+            context.onContinue = processTokens;
+          } else {
+            return processTokens();
+          }
+        });
       }
-      processNextToken();
     }
 
     function isCapitalized(word) {
@@ -15239,18 +15258,18 @@ class Aww {
         startDefinition(word, isPermanent);
       }
       
-      processNextToken(); // Changed from processTokens() to processNextToken()
+      processTokens(); // Changed from processTokens() to processNextToken()
     }
 
-    function handleOutput(output) {
-      context.logger.trace('Runtime', `Handling output: ${output}`);
-      context.addOutput(output);
-      if (context.pause) {
-        context.onContinue = processTokens;
-      } else {
-        processTokens();
-      }
-    }
+    // function handleOutput(output) {
+    //   context.logger.info('Runtime', `Handling output: ${output}`);
+    //   context.addOutput(output);
+    //   if (context.pause) {
+    //     context.onContinue = processTokens;
+    //   } else {
+    //     processTokens();
+    //   }
+    // }
 
     function processTokens() {
       context.logger.trace('Runtime', `Processing tokens`);
@@ -15288,7 +15307,7 @@ class Aww {
 
   addPredefinedWords(addToDictionary, readLines, function () {
     // Set up hydra words if instance provided
-    if (hydraInstance) {
+    if (typeof window !== 'undefined' && hydraInstance) {
       setupHydraWords(addToDictionary, hydraInstance);
     }
 

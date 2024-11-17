@@ -18,7 +18,10 @@
         "eejsBlock_editorContainerBox": "ep_awwtysm/index",
         "eejsBlock_styles": "ep_awwtysm/index",
         "padInitToolbar": "ep_awwtysm/index"
-      }
+      },
+      "static_files": [
+        "static/js/ReplModal.js"
+      ]
     }
   ]
 }

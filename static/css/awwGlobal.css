@@ -4,7 +4,7 @@
 
 .awwModalOverflow {
     max-height: 80vh;
-    overflow-y: scroll;
+    overflow-y: auto;
 }
 
 #awwtysmLogsList {
@@ -60,4 +60,123 @@
     border-bottom: 1px solid #aaa;
     margin-bottom: 0.5em;
   }
+
+
+#awwtysmReplModal {
+    min-width: calc(min(500px, 80vw));
+}
+
+#awwtysmReplModal .awwModalOverflow {
+    padding: 0;
+  }
   
+  .awwtysmEditor {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #888;
+    position: relative;
+  }
+  
+  .awwtysmEditor.has-canvas .text,
+  .awwtysmEditor.has-canvas .stack-viewer {
+    margin-right: 125px;
+  }
+  
+  .awwtysmEditor.has-canvas .canvas {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+  }
+  
+  .awwtysmEditor .awwtysmEditorText {
+    height: 298px;
+    overflow-y: auto;
+  }
+  
+  .awwtysmEditor.small .awwtysmEditorText {
+    height: 150px;
+  }
+  
+  .awwtysmEditor .awwtysmEditorStackViewer {
+    padding: 5px;
+    border: 1px solid #888;
+    margin-bottom: 5px;
+  }
+  
+  /* This is used in the book for showing the stack */
+  .awwtysmEditor .stack {
+    border: 0;
+    margin-bottom: 20px;
+    margin-left: 1em;
+  }
+  
+  /* This is used in the book for showing a preview of the editor */
+  .awwtysmEditor-preview {
+    margin-left: 1em;
+    margin-bottom: 20px;
+    white-space: pre-wrap;
+    line-height: 1.5em;
+  }
+  
+  /* newlines in output will be treated like new paragraphs */
+  .awwtysmEditor .awwtysmEditorPrevLines p {
+    white-space: pre-wrap;
+    margin: 0;
+    line-height: 1.5em;
+  }
+  
+  .awwtysmEditor .awwtysmEditorInput {
+    height: 1.5em;
+    width: 100%;
+    border: 0;
+    outline: 0;
+    border-bottom: 1px solid #888;
+    margin: 0;
+    margin-top: 2px; /* hack to make textarea line up with prev-lines paragraph */
+    resize: none;
+    padding: 0;
+  }
+  
+  /* Fake hiding the input (if it's actually hidden it can't accept input) */
+  .awwtysmEditor .awwtysmEditorInput.hide {
+    border-bottom: none;
+    color: #fff;
+  }
+  .awwtysmEditorStackViewer {
+    padding: 5px;
+    border-bottom: 1px solid #ccc;
+  }
+  
+
+  .awwtysmEditor .output {
+    color: #666;
+    margin-left: 10px;
+  }
+  
+  .awwtysmCode {
+    color: #333;
+  }
+  
+  .awwtysmOutput {
+    color: #999;
+  }
+
+  .hide {
+    display: none;
+  }
+  .code {
+    color: #333;
+  }
+
+  .awwtysmReplControls {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  .awwtysmEditorAutocomplete {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 2em;
+    overflow: hidden;
+  }

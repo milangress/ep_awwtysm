@@ -169,9 +169,13 @@ exports.postToolbarInit = (hookName, context) => {
     $('#awwtysmMainModal').toggleClass('popup-show');
   });
 
+  $('#awwtysmReplModalButton').click(() => {
+    $('#awwtysmReplModal').toggleClass('popup-show');
+  });
+
   $('#awwtysmToggleStageButton').click(() => {
     const isVisible = stage.toggle();
-    $('#awwtysmToggleStageButton').innerHTML = isVisible ? 'Hide' : 'Show';
+    $('#awwtysmToggleStageToolbarButton').text(isVisible ? 'Hide Stage' : 'Show Stage');
   });
   return true;
 };
