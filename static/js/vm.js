@@ -15,6 +15,7 @@ const lastLine = signal(null);
 const currentDictionary = signal(null);
 const context = signal(null);
 const parsedTokens = signal(null);
+const logs = signal([]);
 
 
 effect(() => {
@@ -33,6 +34,10 @@ effect(() => {
   console.log('Current dictionary:', currentDictionary.value);
 });
 
+effect(() => {
+  console.log('Logs:', logs.value);
+});
+
 const vm = () => ({
   readLine: (line) => {
     lastLine.value = line;
@@ -45,6 +50,7 @@ const vm = () => ({
       lastStack.value = forthApi.getStack();
       currentDictionary.value = forthApi.getDictionary();
       parsedTokens.value = forthApi.getParsedTokens();
+      logs.value = forthApi.getLogs();
       returnVal = output;
     });
 

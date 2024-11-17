@@ -30,46 +30,47 @@ function Dictionary() {
   let redefinedWords = new Map();
 
   function add(name, definition, isPermanent = false) {
-    // console.log("Adding word to dictionary: ", name, definition, isPermanent);
     if (name === null || name === undefined) {
-      console.log("Trying to add word with null name to dictionary");
-      throw new Error("Cant add null name");
+      throw new Error("Can't add null name");
     }
     dict.set(name.toLowerCase(), [definition, isPermanent]);
   }
 
   function lookup(key) {
     key = key.toLowerCase();
-    
-    // Keep track of seen words to detect circular definitions
     const seenWords = new Set();
     
-    // Follow chain of redefinitions
     while (true) {
-      // Check for circular definitions
       if (seenWords.has(key)) {
         throw new Error("Circular definition detected for word: " + key);
       }
       seenWords.add(key);
 
-      // Check if word is redefined
       let redefinedWord = redefinedWords.get(key);
       if (redefinedWord) {
         const [definition, _] = redefinedWord;
-        key = definition.toLowerCase(); // Update key to follow the chain
+        key = definition.toLowerCase();
         continue;
       }
 
-      // Look up in main dictionary
       var item = dict.get(key);
       if (!item) {
-        // throw new Error("Word not found in dictionary: " + key);
-        console.warn("Word not found in dictionary: " + key);
         return null;
       }
       
       return item[0];
     }
+  }
+
+  function redefine(key, newDefinition, isPermanent) {
+    key = key.toLowerCase();
+    let isInDict = dict.has(key) || redefinedWords.has(key);
+
+    if (isInDict) {
+      throw new Error("Can't redefine word that is already in dictionary: " + key);
+    }
+
+    redefinedWords.set(key, [newDefinition, isPermanent]);
   }
 
   function isPermanent(key) {
@@ -81,19 +82,6 @@ function Dictionary() {
     }
 
     return item[1];
-  }
-
-  function redefine(key, newDefinition, isPermanent) {
-    key = key.toLowerCase();
-    let isInDict = dict.has(key) || redefinedWords.has(key);
-
-    if (isInDict) {
-      throw new Error("Cant redefine word that is already in dictionary: " + key + " -> " + newDefinition);
-    }
-
-    console.log("Redefining word in dictionary: ", key, newDefinition, isPermanent, "is in dict: ", isInDict);
-
-    redefinedWords.set(key, [newDefinition, isPermanent]);
   }
 
   function print() {
@@ -795,6 +783,62 @@ function compile(dictionary, actions, isPermanent) {
   };
 }
 
+const LogLevel = {
+  TRACE: -1,
+  DEBUG: 0,
+  INFO: 1, 
+  WARN: 2,
+  ERROR: 3
+};
+
+function createLogger(initialLevel = LogLevel.INFO) {
+  const logs = [];
+  let currentLevel = initialLevel;
+
+  function addLog(level, category, message, data = null) {
+    if (level >= currentLevel) {
+      const entry = {
+        timestamp: new Date().toISOString(),
+        level: getLevelName(level),
+        category,
+        message,
+        data
+      };
+      logs.push(entry);
+    }
+  }
+
+  function getLevelName(level) {
+    return Object.entries(LogLevel).find(([_, value]) => value === level)?.[0] || 'UNKNOWN';
+  }
+
+  function setLevel(level) {
+    currentLevel = level;
+  }
+
+  function getLogs(level = null) {
+    if (level === null) {
+      return [...logs];
+    }
+    return logs.filter(log => LogLevel[log.level] >= level);
+  }
+
+  function clearLogs() {
+    logs.length = 0;
+  }
+
+  return {
+    debug: (category, message, data) => addLog(LogLevel.DEBUG, category, message, data),
+    info: (category, message, data) => addLog(LogLevel.INFO, category, message, data),
+    warn: (category, message, data) => addLog(LogLevel.WARN, category, message, data),
+    error: (category, message, data) => addLog(LogLevel.ERROR, category, message, data),
+    trace: (category, message, data) => addLog(LogLevel.TRACE, category, message, data),
+    setLevel,
+    getLogs,
+    clearLogs
+  };
+}
+
 function Forth(next) {
   // Core structures
   var context = {
@@ -808,7 +852,8 @@ function Forth(next) {
     // once a key has been pressed or sleep has finished
     onContinue: null,
     // Add array to store valid tokens
-    parsedTokens: []
+    parsedTokens: [],
+    logger: createLogger(LogLevel.TRACE)
   };
 
   // This variable is shared across multiple calls to readLine,
@@ -850,6 +895,7 @@ function Forth(next) {
   }
 
   function addToDictionary(name, definition, isPermanent = false) {
+    context.logger.debug('Dictionary', `Adding word: ${name}`, { isPermanent, definition });
     context.dictionary.add(name, namedFunction(name, null,  definition), isPermanent);
   }
 
@@ -861,30 +907,31 @@ function Forth(next) {
 
   function createVariable(name) {
     var pointer = context.memory.addVariable(name);
+    context.logger.debug('Memory', `Creating variable: ${name}`, { pointer });
     addToDictionary(name, function (context) {
       context.stack.push(pointer);
     });
   }
 
   function createConstant(name, value) {
+    context.logger.debug('Memory', `Creating constant: ${name}`, { value });
     addToDictionary(name, function (context) {
       context.stack.push(value);
     });
   }
 
   function startDefinition(name, isPermanent = false) {
+    context.logger.debug('Compiler', `Starting definition: ${name}`, { isPermanent });
     currentDefinition = { name: name, actions: [], isPermanent: isPermanent };
-    console.log('start definition', name, currentDefinition);
   }
 
   function endDefinition() {
-    console.log('end definition', currentDefinition);
+    context.logger.debug('Compiler', `Ending definition: ${currentDefinition.name}`);
     compileAndAddToDictionary(currentDefinition.name, currentDefinition.actions, currentDefinition.isPermanent);
     currentDefinition = null;
   }
 
   function addActionToCurrentDefinition(action) {
-    console.log('add action to current definition', action);
     if (action.code === ";") {
       endDefinition();
     } else {
@@ -893,10 +940,11 @@ function Forth(next) {
   }
 
   function executeRuntimeAction(tokenizer, action, next) {
-    console.log("Executing runtime action: ", action?._name);
+    context.logger.debug('Runtime', `Executing action: ${action?._name}`);
     
     // Store the token if it's valid and skip if invalid
     if (action === null) {
+      context.logger.trace('Runtime', `Executing action: ${action?._name} -> null`);
       next(); // Continue processing instead of returning
       return;
     }
@@ -904,6 +952,7 @@ function Forth(next) {
     // Store the token if it's valid
     if (action) {
       const token = action._token;
+      context.logger.trace('Runtime', `Executing action: ${action?._name} -> ${token}`);
       if (token) {
         context.parsedTokens.push(token);
       }
@@ -937,7 +986,7 @@ function Forth(next) {
 
   // Read a line of input. Callback is called with output for this line.
   function readLine(line, outputCallback, next) {
-    console.log('read line', line);
+    context.logger.info('Input', `Processing line: ${line}`);
     if (!next) {
       next = outputCallback;
       outputCallback = null;
@@ -949,33 +998,43 @@ function Forth(next) {
     // processNextToken recursively executes tokens
     function processNextToken() {
       var token = tokenizer.peekToken();
-      console.log('process next token', token);
 
       if (!token) {
+        context.logger.debug('Runtime', `No token (last token)`);
         if (!currentDefinition) { // don't append output while definition is in progress
-          console.log('no token, no current definition, append output');
+          context.logger.debug('Runtime', `No token (last token), no current definition, append output`);
           context.addOutput(" ok");
         }
         next();
         return;
       }
 
+      context.logger.trace('Runtime', `Processing Next token: ${token.value}`);
+
+
       const peekAction = tokenToAction(token);
+      const peekAction2 = tokenToAction(tokenizer.peekToken(2));
+      const peekAction3 = tokenToAction(tokenizer.peekToken(3));
 
 
-      if (peekAction?.code === '~' && isCapitalized(tokenizer.peekToken(2)?.value) && peekAction3?.code  === 'is') {
+      if (peekAction?.code === '~' && isCapitalized(peekAction2?.value) && peekAction3?.code  === 'is') {
+        context.logger.trace('Runtime', `Handling permanent definition: ${token.value} ${peekAction2.value} ${peekAction3.value}`);
         handlePermanentDefinition();
-      } else if (isCapitalized(token.value) && tokenToAction(tokenizer.peekToken(2))?.code === 'is') {
+      } else if (isCapitalized(token.value) && peekAction2?.code === 'is') {
+        context.logger.trace('Runtime', `Handling non-permanent definition: ${token.value} ${peekAction2.value}`);
         handleDefinitionTypeIS(false);
       } else if (peekAction?.code === ':') {
         tokenizer.nextToken(); // consume ':'
+        context.logger.trace('Runtime', `Handling colon definition: ${token.value}`);
         var word = tokenizer.nextToken().value;
         context.parsedTokens.push(word);
         startDefinition(word);
       } else if (currentDefinition) {
+        context.logger.trace('Runtime', `Handling current definition: ${token.value}`);
         var action = tokenToAction(tokenizer.nextToken());
         addActionToCurrentDefinition(action);
       } else {
+        context.logger.trace('Runtime', `Handling default runtime action: ${token.value}`);
         var action = tokenToAction(tokenizer.nextToken());
         executeRuntimeAction(tokenizer, action, handleOutput);
       }
@@ -992,11 +1051,13 @@ function Forth(next) {
     }
 
     function handleDefinitionTypeIS(isPermanent) {
-      console.log("Handling definition type IS: ", isPermanent);
       var word = tokenizer.nextToken().value;
       context.parsedTokens.push(word);
       const definitionWord = tokenizer.nextToken().value;
       context.parsedTokens.push(definitionWord);
+
+      context.logger.debug('Compiler', `Handling definition type IS: ${word} ${definitionWord} ->`);
+
       
       if (tokenToAction(tokenizer.peekToken())?.code === 'now') {
         tokenizer.nextToken(); // consume 'now'
@@ -1010,6 +1071,7 @@ function Forth(next) {
     }
 
     function handleOutput(output) {
+      context.logger.trace('Runtime', `Handling output: ${output}`);
       context.addOutput(output);
       if (context.pause) {
         context.onContinue = processTokens;
@@ -1019,11 +1081,13 @@ function Forth(next) {
     }
 
     function processTokens() {
+      context.logger.trace('Runtime', `Processing tokens`);
       try {
         processNextToken();
       } catch (e) {
         currentDefinition = null;
         context.addOutput(" " + e.message);
+        context.logger.error('Runtime', `Error processing tokens: ${e.message}`);
         next();
       }
     }
@@ -1055,6 +1119,7 @@ function Forth(next) {
       readLine: readLine,
       readLines: readLines,
       keydown: function (keyCode) {
+        context.logger.debug('Input', `Keydown event: ${keyCode}`);
         context.memory.setValue(context.memory.getVariable("last-key"), keyCode);
         context.keydown && context.keydown(keyCode);
       },
@@ -1079,6 +1144,16 @@ function Forth(next) {
         context.onMemoryChange = function (address, value) {
           cb(address, value, context.memory.getVariable("graphics"));
         };
+      },
+      // Add logger controls
+      setLogLevel: function(level) {
+        context.logger.setLevel(level);
+      },
+      getLogs: function(level) {
+        return context.logger.getLogs(level);
+      },
+      clearLogs: function() {
+        context.logger.clearLogs();
       }
     });
   });
