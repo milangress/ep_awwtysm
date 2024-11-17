@@ -32,10 +32,16 @@ effect(() => {
 
 effect(() => {
   console.log('Last stack:', lastStack.value);
+  const stackContainer = $('#awwtysmStack');
+  stackContainer.empty();
+  stackContainer.append(`<p>${lastStack.value} ←</p>`);
 });
 
 effect(() => {
   console.log('Last line:', lastLine.value);
+  const lastLineContainer = $('#awwtysmLastLine');
+  lastLineContainer.empty();
+  lastLineContainer.append(`<p>${lastLine.value}</p>`);
 });
 
 
