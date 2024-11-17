@@ -29,7 +29,7 @@ function Dictionary() {
   var dict = [];
 
   function add(name, definition, isPermanent = false) {
-    console.log("Adding word to dictionary: ", name, definition, isPermanent);
+    // console.log("Adding word to dictionary: ", name, definition, isPermanent);
     if (name === null || name === undefined) {
       console.log("Trying to add word with null name to dictionary");
       throw new Error("Cant add null name");
@@ -42,7 +42,7 @@ function Dictionary() {
     var item = dict.find(function (item) {
       return item[0] === key;
     });
-    console.log("Looking up word in dictionary: ", key, item, "found: ", item ? item[1] : null);
+    // console.log("Looking up word in dictionary: ", key, item, "found: ", item ? item[1] : null);
 
     return item ? item[1] : null;
   }
@@ -62,7 +62,7 @@ function Dictionary() {
       return item[0] === key;
     });
 
-    console.log("Redefining word in dictionary: ", key, newDefinition, isPermanent, "at index: ", index);
+    // console.log("Redefining word in dictionary: ", key, newDefinition, isPermanent, "at index: ", index);
 
     if (index !== -1) {
       dict[index] = [key, newDefinition, isPermanent];
@@ -72,11 +72,16 @@ function Dictionary() {
     }
   }
 
+  function print() {
+    return dict;
+  }
+
   return {
     add: add,
     lookup: lookup,
     isPermanent: isPermanent,
-    redefine: redefine
+    redefine: redefine,
+    print: print
   };
 }
 
@@ -432,6 +437,7 @@ function addPredefinedWords(addToDictionary, readLines, next) {
     "variable  graphics", // start of graphics memory
     "575 cells allot", // graphics memory takes 24 * 24 = 576 cells altogether
     "variable  last-key", // create last-key variable for keyboard input
+    "drop",
   ], next);
 
   addToDictionary("is", controlCode("is"));
@@ -481,33 +487,34 @@ function addPredefinedWords(addToDictionary, readLines, next) {
     context.stack.push(Math.floor(Math.random() * range));
   });
 
-  readLines([
-    ": cells   1 * ;",
-    ": cr      10 emit ;",
-    ": space   32 emit ;",
-    ": spaces  0 do space loop ;",
-    ": 0=      0 = ;",
-    ": 0<      0 < ;",
-    ": 0>      0 > ;",
-    ": ?dup    dup if dup then ;",
-    ": 2dup    over over ;",
-    ": 1+      1 + ;",
-    ": 1-      1 - ;",
-    ": 2+      2 + ;",
-    ": 2-      2 - ;",
-    ": 2*      2 * ;",
-    ": 2/      2 / ;",
-    ": negate  -1 * ;",
-    ": abs     dup 0< if negate then ;",
-    ": min     2dup < if drop else swap drop then ;",
-    ": max     2dup < if swap drop else drop then ;",
-    ": ?       @ . ;",
-    ": +!      dup @ rot + swap ! ;",
+  // readLines([
+  //   ": cells   1 * ;",
+  //   ": cr      10 emit ;",
+  //   ": space   32 emit ;",
+  //   ": spaces  0 do space loop ;",
+  //   ": 0=      0 = ;",
+  //   ": 0<      0 < ;",
+  //   ": 0>      0 > ;",
+  //   ": ?dup    dup if dup then ;",
+  //   ": 2dup    over over ;",
+  //   ": 1+      1 + ;",
+  //   ": 1-      1 - ;",
+  //   ": 2+      2 + ;",
+  //   ": 2-      2 - ;",
+  //   ": 2*      2 * ;",
+  //   ": 2/      2 / ;",
+  //   ": negate  -1 * ;",
+  //   ": abs     dup 0< if negate then ;",
+  //   ": min     2dup < if drop else swap drop then ;",
+  //   ": max     2dup < if swap drop else drop then ;",
+  //   ": ?       @ . ;",
+  //   ": +!      dup @ rot + swap ! ;",
 
-    "variable  graphics", // start of graphics memory
-    "575 cells allot", // graphics memory takes 24 * 24 = 576 cells altogether
-    "variable  last-key", // create last-key variable for keyboard input
-  ], next);
+  //   "variable  graphics", // start of graphics memory
+  //   "575 cells allot", // graphics memory takes 24 * 24 = 576 cells altogether
+  //   "variable  last-key", // create last-key variable for keyboard input
+  //   "drop",
+  // ], next);
 }
 
 /*
@@ -952,6 +959,12 @@ function Forth(next) {
       },
       getStack: function () {
         return context.stack.print();
+      },
+      getContext: function () {
+        return context;
+      },
+      getDictionary: function () {
+        return context.dictionary.print();
       },
       setMemoryHandler: function (cb) {
         context.onMemoryChange = function (address, value) {

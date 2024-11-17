@@ -1,6 +1,7 @@
 'use strict';
 
 const {signal, computed, effect} = require('@preact/signals-core');
+const vm = require('./vm');
 
 class EditorLine {
   constructor(domNode, lineNumber, text) {
@@ -138,13 +139,30 @@ class EditorLine {
   execute() {
     console.log('Executing line:', this.$text.value);
 
-    // const result = vmWrapper().readLine(this.$text.value);
-    // console.log('Result:', result);
+    let result = null;
+    let error = false;
+    try {
+      result = vm().readLine(this.$text.value);
+      console.log('Result:', result);
+    } catch (e) {
+      console.error('Error executing line:', e);
+      error = e;
+    }
 
-    const success = Math.random() > 0.5; // Mock execution
-    this.pulse(success);
-    this.$result.value = this.$text.value; // Mock result
+    if (result) {
+      this.$result.value = result;
+    } else {
+      this.$result.value = vm().lastStack.value;
+    }
+
+    if (error) {
+      this.$result.value += `\n${error}`;
+    }
+
+    this.pulse(!error);
+
     this.$isProcessed.value = true;
+
     this.$resultTimestamp.value = new Date().getTime();
     this.interval = setInterval(() => {
       this.$currentTimestamp.value = new Date().getTime();

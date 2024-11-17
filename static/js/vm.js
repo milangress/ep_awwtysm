@@ -3,10 +3,16 @@
 const {signal, effect} = require('@preact/signals-core');
 const forth = require('./reherser');
 
+// Create a single instance and store its API
+let forthApi = null;
+forth((api) => {
+  forthApi = api;
+});
 
 const lastOutput = signal(null);
 const lastStack = signal([]);
 const lastLine = signal(null);
+const currentDictionary = signal(null);
 const context = signal(null);
 
 effect(() => {
@@ -17,36 +23,29 @@ effect(() => {
   console.log('Last stack:', lastStack.value);
 });
 
-forth((api) => {
-  // Your code here using the api
-  api.readLine('5 3 + .', (output) => {
-    lastOutput.value = output;
-    lastStack.value = api.getStack();
-  });
+const vm = () => ({
+  readLine: (line) => {
+    lastLine.value = line;
+    let returnVal = null;
+
+    // Use the existing forthApi instance
+    context.value = forthApi;
+    forthApi.readLine(line, (output) => {
+      lastOutput.value = output;
+      lastStack.value = forthApi.getStack();
+      currentDictionary.value = forthApi.getDictionary();
+      returnVal = output;
+    });
+
+    return returnVal;
+  },
+  forth,
+  lastOutput,
+  lastStack,
+  lastLine,
+  currentDictionary,
+  context,
 });
 
-const vmWrapper = () => {
-  let returnVal = null;
-  return {
-    readLine: (line) => {
-      lastLine.value = line;
-      forth((api) => {
-        context.value = api;
-        // Your code here using the api
-        api.readLine(line, (output) => {
-          lastOutput.value = output;
-          lastStack.value = api.getStack();
-          returnVal = output;
-          return returnVal;
-        });
-      });
-    },
-    forth,
-    lastOutput,
-    lastStack,
-    lastLine,
-    returnVal,
-  };
-};
-
-module.exports = vmWrapper;
+// Export a singleton instance
+module.exports = vm;
