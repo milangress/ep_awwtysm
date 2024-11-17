@@ -38,9 +38,39 @@ effect(() => {
   console.log('Last line:', lastLine.value);
 });
 
+
+const formatDictEntry = (definition, word) => {
+  console.log('Definition:', definition[0]);
+  const def = definition[0];
+  let formattedFunction = null;
+  if (typeof def === 'function') {
+    formattedFunction = def.toString()
+        .replace(/}/g, '}<br>')
+        .replace(/;/g, ';<br>');
+  } else {
+    formattedFunction = JSON.stringify(def, null, 2)
+        .replace(/\n/g, '<br>');
+  }
+  const persistenceString = definition[1] ? 'Temporary' : 'Persistent';
+  const detailsElement = document.createElement('details');
+  detailsElement.innerHTML = formattedFunction;
+  const summaryElement = document.createElement('summary');
+  summaryElement.innerHTML = `${word} - ${persistenceString}`;
+  detailsElement.appendChild(summaryElement);
+  return detailsElement;
+};
+
 effect(() => {
   console.log('Current dictionary:', currentDictionary.value);
+  if (currentDictionary.value && currentDictionary.value.resolvedDict) {
+    const dictionaryContainer = $('#awwtysmDictionary');
+    dictionaryContainer.empty();
+    currentDictionary.value.resolvedDict.forEach((definition, word) => {
+      dictionaryContainer.append(formatDictEntry(definition, word));
+    });
+  }
 });
+
 
 // effect(() => {
 //   console.log('Logs:', logs.value);

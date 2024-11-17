@@ -160,6 +160,10 @@ exports.postToolbarInit = (hookName, context) => {
     $('#awwtysmLogsModal').toggleClass('popup-show');
   });
 
+  $('#awwtysmMainModalButton').click(() => {
+    $('#awwtysmMainModal').toggleClass('popup-show');
+  });
+
   return true;
 };
 
