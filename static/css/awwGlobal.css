@@ -2,6 +2,11 @@
     min-width: calc(min(500px, 80vw));
 }
 
+.awwModalOverflow {
+    max-height: 80vh;
+    overflow-y: scroll;
+}
+
 #awwtysmLogsList {
     max-height: 80vh;
     overflow-y: auto;
@@ -35,23 +40,23 @@
     font-family: monospace;
 }
 
-#awwtysmDictionary details {
+.awwModalOverflow details {
     border: 1px solid #aaa;
     border-radius: 4px;
     padding: 0.5em 0.5em 0;
   }
   
-#awwtysmDictionary summary {
+.awwModalOverflow summary {
     font-weight: bold;
     margin: -0.5em -0.5em 0;
     padding: 0.5em;
   }
   
-#awwtysmDictionary details[open] {
+.awwModalOverflow details[open] {
     padding: 0.5em;
   }
   
-#awwtysmDictionary details[open] summary {
+.awwModalOverflow details[open] summary {
     border-bottom: 1px solid #aaa;
     margin-bottom: 0.5em;
   }

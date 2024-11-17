@@ -20,7 +20,7 @@ function Stack(name) {
       }
     },
     print: function () {
-      return arr.join(" ") + " <- Top ";
+      return arr.join(" ") + " ← Top ";
     }
   };
 }
@@ -163,12 +163,21 @@ function Memory() {
     _memPointer += cells;
   }
 
+  function print() {
+    return {
+      variables: variables,
+      memArray: memArray,
+      memPointer: _memPointer
+    }
+  }
+
   return {
     addVariable: addVariable,
     getVariable: getVariable,
     setValue: setValue,
     getValue: getValue,
-    allot: allot
+    allot: allot,
+    print: print
   };
 }
 
@@ -1149,6 +1158,9 @@ function Forth(next) {
       },
       getDictionary: function () {
         return context.dictionary.print();
+      },
+      getMemory: function () {
+        return context.memory.print();
       },
       // Add new getter for parsed tokens
       getParsedTokens: function () {
