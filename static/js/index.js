@@ -20,7 +20,7 @@ exports.aceEditEvent = (hook, call) => {
 
   if (cs.type === 'setBaseText' || cs.type === 'setup') return false;
 
-  console.log('aceEditEvent', call);
+  // console.log('aceEditEvent', call);
 
   if (!call.repChanged) {
     const startLine = call.rep.selStart[0];
@@ -133,8 +133,9 @@ exports.aceInitialized = (hook, context) => {
 };
 
 exports.aceSelectionChanged = (hook, context) => {
-  console.log('aceSelectionChanged', context);
-  return true;
+  // console.log('aceSelectionChanged', context);
+  const value = true;
+  return value;
 };
 
 exports.postToolbarInit = (hookName, context) => {

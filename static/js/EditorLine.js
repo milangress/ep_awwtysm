@@ -9,6 +9,12 @@ class EditorLine {
     this.$lineNumber = signal(lineNumber);
     this.$text = signal(text);
     this.$result = signal(null);
+    this.$parsedTokens = signal([]);
+    this.$resultString = computed(() => {
+      const tokens = this.$parsedTokens.value;
+      const tokensString = tokens ? `(${tokens.join(' ')}) <br>` : '';
+      return `${tokensString}${this.$result.value}`;
+    });
     this.$resultTimestamp = signal(new Date().getTime());
     this.$currentTimestamp = signal(new Date().getTime());
     this.interval = null;
@@ -33,8 +39,8 @@ class EditorLine {
 
     effect(() => console.log('position', this.$position.value));
     effect(() => {
-      if (this.$resultElement.value && this.$result.value) {
-        const result = this.$result.value;
+      if (this.$resultElement.value && this.$resultString.value) {
+        const result = this.$resultString.value;
         this.$resultElement.value.message.innerHTML = `→ ${result}`;
         this.$resultElement.value.div.style.top = `${this.$position.value.top}px`;
       }
@@ -52,7 +58,6 @@ class EditorLine {
       }
     });
   }
-
   setupIntersectionObserver() {
     const outer = parent.document.querySelector('iframe[name="ace_outer"]');
     const inner = outer.contentDocument.querySelector('iframe[name="ace_inner"]');
@@ -89,7 +94,7 @@ class EditorLine {
 
   updatePosition() {
     if (this.$isDirty.value) return;
-    console.log('updatePosition', this.$position.value, this.domNode);
+    // console.log('updatePosition', this.$position.value, this.domNode);
     const newPosition = this.calculatePosition();
     if (newPosition.height > 0) {
       this.$position.value = newPosition;
@@ -137,17 +142,19 @@ class EditorLine {
   }
 
   execute() {
-    console.log('Executing line:', this.$text.value);
+    // console.log('Executing line:', this.$text.value);
 
     let result = null;
     let error = false;
     try {
       result = vm().readLine(this.$text.value);
       console.log('Result:', result);
+      console.log('VM:', vm());
     } catch (e) {
       console.error('Error executing line:', e);
       error = e;
     }
+    this.$parsedTokens.value = vm().parsedTokens.value;
 
     if (result) {
       this.$result.value = result;
@@ -213,7 +220,7 @@ class EditorLine {
     this.domNode.remove();
   }
   checkIfDirty() {
-    console.log('checkIfDirty', this.domNode.id);
+    // console.log('checkIfDirty', this.domNode.id);
     const isDirty = !this.domNode.id.startsWith('magicdomid');
     this.$isDirty.value = isDirty;
     return isDirty;

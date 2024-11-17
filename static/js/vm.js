@@ -14,6 +14,8 @@ const lastStack = signal([]);
 const lastLine = signal(null);
 const currentDictionary = signal(null);
 const context = signal(null);
+const parsedTokens = signal(null);
+
 
 effect(() => {
   console.log('Last output:', lastOutput.value);
@@ -21,6 +23,14 @@ effect(() => {
 
 effect(() => {
   console.log('Last stack:', lastStack.value);
+});
+
+effect(() => {
+  console.log('Last line:', lastLine.value);
+});
+
+effect(() => {
+  console.log('Current dictionary:', currentDictionary.value);
 });
 
 const vm = () => ({
@@ -34,6 +44,7 @@ const vm = () => ({
       lastOutput.value = output;
       lastStack.value = forthApi.getStack();
       currentDictionary.value = forthApi.getDictionary();
+      parsedTokens.value = forthApi.getParsedTokens();
       returnVal = output;
     });
 
@@ -45,6 +56,7 @@ const vm = () => ({
   lastLine,
   currentDictionary,
   context,
+  parsedTokens,
 });
 
 // Export a singleton instance

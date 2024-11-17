@@ -749,23 +749,27 @@ function Forth(next) {
     pause: false,
     // This is set within readLine as a callback to continue processing tokens
     // once a key has been pressed or sleep has finished
-    onContinue: null
+    onContinue: null,
+    // Add array to store valid tokens
+    parsedTokens: []
   };
 
   // This variable is shared across multiple calls to readLine,
   // as definitions can span multiple lines
   var currentDefinition = null;
 
-  function MissingWordError(word) {
-    this.message = word + " ? ";
-  }
-
-  function namedFunction(name, func) {
+  function namedFunction(name, prefix,  func) {
     console.log("Named function: ", name, func);
     if (typeof name !== 'string') {
       throw new Error('namedFunction expects a string as the first argument');
     }
+    const originalName = name;
+    if (prefix) {
+      name = prefix + " " + name;
+    }
     func._name = name;
+    func._token = originalName;
+    func._prefix = prefix;
     return func;
   }
 
@@ -775,22 +779,21 @@ function Forth(next) {
     var definition = context.dictionary.lookup(word);
 
     if (token.isStringLiteral) {
-      return namedFunction("String: " + word, function (context) {
+      return namedFunction(word, 'String', function (context) {
         return word;
       });
     } else if (definition !== null) {
       return definition;
     } else if (isFinite(word)) {
-      return namedFunction("Number: " + word, function (context) {
+      return namedFunction(word, 'Number', function (context) {
         context.stack.push(+word);
       });
-    } else {
-      throw new MissingWordError(word);
     }
+    return null;
   }
 
   function addToDictionary(name, definition, isPermanent = false) {
-    context.dictionary.add(name, namedFunction(name, definition), isPermanent);
+    context.dictionary.add(name, namedFunction(name, null,  definition), isPermanent);
   }
 
   // compile actions into definition and add definition to dictionary
@@ -822,6 +825,22 @@ function Forth(next) {
   }
 
   function executeRuntimeAction(tokenizer, action, next) {
+    console.log("Executing runtime action: ", action?._name);
+    
+    // Store the token if it's valid and skip if invalid
+    if (action === null) {
+      next(); // Continue processing instead of returning
+      return;
+    }
+
+    // Store the token if it's valid
+    if (action) {
+      const token = action._token;
+      if (token) {
+        context.parsedTokens.push(token);
+      }
+    }
+
     if (typeof action === 'function') {
       if (action.length == 2) { // has next callback
         action(context, next);
@@ -856,6 +875,7 @@ function Forth(next) {
     }
     context.addOutput = outputCallback || function () {};
     var tokenizer = Tokenizer(line);
+    context.parsedTokens = [];
 
     // processNextToken recursively executes tokens
     function processNextToken() {
@@ -890,7 +910,9 @@ function Forth(next) {
 
     function handleDefinition(isPermanent) {
       var word = tokenizer.nextToken().value;
-      tokenizer.nextToken(); // consume 'is'
+      context.parsedTokens.push(word);
+      const definitionWord = tokenizer.nextToken().value;
+      context.parsedTokens.push(definitionWord);
       
       if (tokenizer.peekToken()?.value === 'now') {
         tokenizer.nextToken(); // consume 'now'
@@ -965,6 +987,14 @@ function Forth(next) {
       },
       getDictionary: function () {
         return context.dictionary.print();
+      },
+      // Add new getter for parsed tokens
+      getParsedTokens: function () {
+        return context.parsedTokens;
+      },
+      // Clear parsed tokens at start of new line
+      clearParsedTokens: function () {
+        context.parsedTokens = [];
       },
       setMemoryHandler: function (cb) {
         context.onMemoryChange = function (address, value) {

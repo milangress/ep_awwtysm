@@ -65,13 +65,13 @@ class EditorLineManager {
     // If line is dirty or doesn't exist, create new instance
     const newLine = new EditorLine(domInfo.node, lineNumber, text);
 
-    console.log('createOrUpdateLine', lineNumber, text);
+    // console.log('createOrUpdateLine', lineNumber, text);
     // Update lines map
     const updatedLines = new Map(this.$lines.value);
     updatedLines.set(lineNumber, newLine);
     this.$lines.value = updatedLines;
 
-    console.log('this.$lines.value', this.$lines.value);
+    // console.log('this.$lines.value', this.$lines.value);
 
     // Remove from dirty lines if it was dirty
     if (isDirty) {
