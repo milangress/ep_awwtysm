@@ -7,10 +7,32 @@ const lineResults = new WeakMap();
 exports.aceEditorCSS = (hookName, cb) => ['/ep_awwtysm/static/css/awwtysm.css'];
 
 
-const range = (start, end) => Array.from(
-    Array(Math.abs(end - start) + 1),
-    (_, i) => start + i
-);
+// const range = (start, end) => Array.from(
+//     Array(Math.abs(end - start) + 1),
+//     (_, i) => start + i
+// );
+
+
+// Helper function to get accurate line position
+const getLinePosition = (node) => {
+  // Get all required elements
+  const outer = parent.document.querySelector('iframe[name="ace_outer"]');
+  const inner = outer.contentDocument.querySelector('iframe[name="ace_inner"]');
+
+  // Get the line's position relative to inner iframe
+  const lineRect = node.getBoundingClientRect();
+
+  // Get inner iframe's padding/margin
+  const innerStyle = window.getComputedStyle(inner);
+  const innerPaddingTop = parseInt(innerStyle.paddingTop, 10) || 0;
+  const innerMarginTop = parseInt(innerStyle.marginTop, 10) || 0;
+
+  // Calculate top position adding the inner iframe's padding/margin
+  return {
+    top: lineRect.top + innerPaddingTop + innerMarginTop,
+    height: lineRect.height,
+  };
+};
 
 // Bind the event handler to the toolbar buttons
 exports.postAceInit = (hookName, context) => {
@@ -89,7 +111,7 @@ exports.aceEditEvent = (hook, call) => {
     
     // Get all lines that have results
     const lines = inner.contentDocument.querySelectorAll('div');
-    lines.forEach(node => {
+    lines.forEach((node) => {
       const resultSpan = lineResults.get(node);
       if (resultSpan) {
         const position = getLinePosition(node);
@@ -102,22 +124,96 @@ exports.aceEditEvent = (hook, call) => {
 };
 
 // Clean up results when lines are removed
-// exports.acePostWriteDomLineHTML = (hookName, args) => {
-//   const node = args.node;
-//   const resultSpan = lineResults.get(node);
+// FIXME: does not reliably work
+exports.acePostWriteDomLineHTML = (hookName, args) => {
+  console.log('acePostWriteDomLineHTML', args);
+  const node = args.node;
+  const resultSpan = lineResults.get(node);
+
+  if (resultSpan && !node.isConnected) {
+    resultSpan.remove();
+    lineResults.delete(node);
+  }
+};
+
+
+const pulseLine = (node, success) => {
+  const outer = parent.document.querySelector('iframe[name="ace_outer"]');
+  const outerDoc = outer.contentDocument;
+  const overlay = outerDoc.getElementById('ep_awwtysm_overlay');
   
-//   if (resultSpan && !node.isConnected) {
-//     resultSpan.remove();
-//     lineResults.delete(node);
-//   }
-// };
+  const pulseOverlay = outerDoc.createElement('div');
+  pulseOverlay.className = 'line-pulse';
+  
+  const position = getLinePosition(node);
+  
+  pulseOverlay.style.cssText = `
+    position: absolute;
+    width: 100vw;
+    right: 0;
+    background-color: ${success ? '#4CAF50' : '#f44336'};
+    opacity: 0;
+    pointer-events: none;
+    z-index: 999;
+    height: ${position.height}px;
+    top: ${position.top}px;
+  `;
+  
+  overlay.appendChild(pulseOverlay);
 
+  requestAnimationFrame(() => {
+    pulseOverlay.animate([
+      {opacity: 0.2},
+      {opacity: 0},
+    ], {
+      duration: 1000,
+      easing: 'ease-out',
+    }).onfinish = () => {
+      pulseOverlay.remove();
+    };
+  });
+};
 
+const executeLine = (line) => {
+  console.log('Executing line:', line.text);
+  // For now, just return the line text as the result
+  // and randomly succeed/fail for testing
+  const success = Math.random() > 0.5;
+  pulseLine(line.domInfo.node, success);
+  return line.text;
+};
 
+const executeLineAndReport = (line) => {
+  const result = executeLine(line);
+  attachResultToLine(line, result);
+};
+
+exports.aceKeyEvent = (hook, context) => {
+  // Check if it's an enter key press with option/alt key
+  if (context.evt.type === 'keydown' && 
+      context.evt.keyCode === 13 && // Enter key
+      context.evt.altKey) { // Option/Alt key
+    // Get the current line number
+    const rep = context.rep;
+    const currentLine = rep.selStart[0];
+    
+    // Get the line content
+    const line = rep.lines.atIndex(currentLine);
+    
+    console.log('Current line:', currentLine);
+    console.log('Line content:', line.text, line);
+
+    executeLineAndReport(line);
+    
+    // Prevent default enter behavior
+    context.evt.preventDefault();
+    return true;
+  }
+  return false;
+};
 
 // Once ace is initialized, we set ace_doInsertAlign and bind it to the context
 exports.aceInitialized = (hook, context) => {
-  
   // Passing a level >= 0 will set a alignment on the selected lines, level < 0
   // will remove it
   console.log('aceInitialized', context);
@@ -148,25 +244,24 @@ exports.aceInitialized = (hook, context) => {
   innerDoc.head.appendChild(style);
 
 
-
   // Setup Intersection Observer for the inner iframe
   setTimeout(() => {
     const outer = parent.document.querySelector('iframe[name="ace_outer"]');
     const inner = outer.contentDocument.querySelector('iframe[name="ace_inner"]');
-    
+
     // Create observer
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
+      entries.forEach((entry) => {
         if (entry.isIntersecting) {
           const lineDiv = entry.target;
-          
+
           // Skip if we've already processed this line
           if (processedLines.has(lineDiv)) return;
-          
+
           // Get the line object
           const lineNumber = Array.from(lineDiv.parentNode.children).indexOf(lineDiv);
           const line = context.rep.lines.atIndex(lineNumber);
-          
+
           if (line && line.text.trim()) { // Only process non-empty lines
             processedLines.add(lineDiv);
             executeLineAndReport(line);
@@ -175,13 +270,13 @@ exports.aceInitialized = (hook, context) => {
       });
     }, {
       root: inner.contentDocument.body,
-      threshold: 0.5 // Line must be 50% visible
+      threshold: 0.5, // Line must be 50% visible
     });
 
     // Observe all existing lines
     const observeLines = () => {
       const lines = inner.contentDocument.querySelectorAll('div');
-      lines.forEach(line => observer.observe(line));
+      lines.forEach((line) => observer.observe(line));
     };
 
     // Initial observation
@@ -189,8 +284,8 @@ exports.aceInitialized = (hook, context) => {
 
     // Setup mutation observer to watch for new lines
     const mutationObserver = new MutationObserver((mutations) => {
-      mutations.forEach(mutation => {
-        mutation.addedNodes.forEach(node => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
           if (node.nodeName === 'DIV') {
             observer.observe(node);
           }
@@ -200,109 +295,11 @@ exports.aceInitialized = (hook, context) => {
 
     mutationObserver.observe(inner.contentDocument.body, {
       childList: true,
-      subtree: true
+      subtree: true,
     });
   }, 1000); //
 
   return;
-};
-
-
-// Helper function to get accurate line position
-const getLinePosition = (node) => {
-  // Get all required elements
-  const outer = parent.document.querySelector('iframe[name="ace_outer"]');
-  const inner = outer.contentDocument.querySelector('iframe[name="ace_inner"]');
-
-  // Get the line's position relative to inner iframe
-  const lineRect = node.getBoundingClientRect();
-  
-  // Get inner iframe's padding/margin
-  const innerStyle = window.getComputedStyle(inner);
-  const innerPaddingTop = parseInt(innerStyle.paddingTop, 10) || 0;
-  const innerMarginTop = parseInt(innerStyle.marginTop, 10) || 0;
-  
-  // Calculate top position adding the inner iframe's padding/margin
-  return {
-    top: lineRect.top + innerPaddingTop + innerMarginTop,
-    height: lineRect.height
-  };
-};
-
-const pulseLine = (node, success) => {
-  const outer = parent.document.querySelector('iframe[name="ace_outer"]');
-  const outerDoc = outer.contentDocument;
-  const overlay = outerDoc.getElementById('ep_awwtysm_overlay');
-  
-  const pulseOverlay = outerDoc.createElement('div');
-  pulseOverlay.className = 'line-pulse';
-  
-  const position = getLinePosition(node);
-  
-  pulseOverlay.style.cssText = `
-    position: absolute;
-    width: 100vw;
-    right: 0;
-    background-color: ${success ? '#4CAF50' : '#f44336'};
-    opacity: 0;
-    pointer-events: none;
-    z-index: 999;
-    height: ${position.height}px;
-    top: ${position.top}px;
-  `;
-  
-  overlay.appendChild(pulseOverlay);
-
-  requestAnimationFrame(() => {
-    pulseOverlay.animate([
-      { opacity: 0.2 },
-      { opacity: 0 }
-    ], {
-      duration: 1000,
-      easing: 'ease-out'
-    }).onfinish = () => {
-      pulseOverlay.remove();
-    };
-  });
-};
-
-const executeLine = (line) => {
-  console.log('Executing line:', line.text);
-  // For now, just return the line text as the result
-  // and randomly succeed/fail for testing
-  const success = Math.random() > 0.5;
-  pulseLine(line.domInfo.node, success);
-  return line.text;
-};
-
-const executeLineAndReport = (line) => {
-  const result = executeLine(line);
-  attachResultToLine(line, result);
-};
-
-exports.aceKeyEvent = (hook, context) => {
-  // Check if it's an enter key press with option/alt key
-  if (context.evt.type === 'keydown' && 
-      context.evt.keyCode === 13 && // Enter key
-      context.evt.altKey) { // Option/Alt key
-    
-    // Get the current line number
-    const rep = context.rep;
-    const currentLine = rep.selStart[0];
-    
-    // Get the line content
-    const line = rep.lines.atIndex(currentLine);
-    
-    console.log('Current line:', currentLine);
-    console.log('Line content:', line.text, line);
-
-    executeLineAndReport(line);
-    
-    // Prevent default enter behavior
-    context.evt.preventDefault();
-    return true;
-  }
-  return false;
 };
 
 exports.aceSelectionChanged = (hook, context) => {
@@ -310,10 +307,6 @@ exports.aceSelectionChanged = (hook, context) => {
   return true;
 };
 
-exports.acePostWriteDomLineHTML = (hookName, context) => {
-  console.log('acePostWriteDomLineHTML', context);
-  return true;
-};
 
 exports.postToolbarInit = (hookName, context) => {
   const editbar = context.toolbar; // toolbar is actually editbar - http://etherpad.org/doc/v1.5.7/#index_editbar
@@ -325,9 +318,8 @@ exports.postToolbarInit = (hookName, context) => {
   });
   editbar.registerCommand('run-all', () => {
     const rep = context.rep;
-    rep.lines.forEach(line => executeLineAndReport(line));
+    rep.lines.forEach((line) => executeLineAndReport(line));
   });
 
   return true;
 };
-
