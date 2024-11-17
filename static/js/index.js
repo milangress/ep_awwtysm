@@ -1,5 +1,8 @@
 'use strict';
 
+const Stage = require('./Stage');
+const stage = Stage.getInstance();
+
 exports.aceEditorCSS = (hookName, cb) => ['/ep_awwtysm/static/css/awwEditorOuter.css'];
 
 
@@ -106,6 +109,8 @@ exports.aceInitialized = (hook, context) => {
   // will remove it
   console.log('aceInitialized', context);
 
+  stage.setup();
+
   // Add CSS to the inner iframe
   const innerDoc = context.editorInfo.ace_getDocument();
   const style = innerDoc.createElement('style');
@@ -164,7 +169,9 @@ exports.postToolbarInit = (hookName, context) => {
     $('#awwtysmMainModal').toggleClass('popup-show');
   });
 
+  $('#awwtysmToggleStageButton').click(() => {
+    const isVisible = stage.toggle();
+    $('#awwtysmToggleStageButton').innerHTML = isVisible ? 'Hide' : 'Show';
+  });
   return true;
 };
-
-

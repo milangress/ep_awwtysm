@@ -2,16 +2,14 @@
 
 const {signal, effect} = require('@preact/signals-core');
 const {Aww} = require('./reherser');
-const {hydra} = require('./reherser');
+const {createHydra} = require('./reherser');
 
-const hydraInstance = hydra({
-  detectAudio: false,
-});
+const Stage = require('./Stage');
+const stage = Stage.getInstance();
 
-// Create a single instance and store its API
-let forthApi = null;
 
-new Aww((api) => forthApi = api, hydraInstance);
+let awwApi = null;
+
 
 const lastOutput = signal(null);
 const lastStack = signal([]);
@@ -21,16 +19,33 @@ const context = signal(null);
 const parsedTokens = signal(null);
 const logs = signal([]);
 const memory = signal(null);
-const forthHistory = signal([]);
+const awwHistory = signal([]);
 
-forthApi.onLog((log) => {
-  logs.value.push(log);
 
-  const logsContainer = $('#awwtysmLogsList');
-  const formattedLog = `[${log.level}] ${log.timestamp}<br>${log.category}: ${log.message}`;
-  logsContainer.prepend(`<p class="awwtysmLog ${log.level}">${formattedLog}</p>`);
-});
+(async () => {
+  const canvas = await stage.hydraCanvas();
+  await stage.show();
 
+  const size = canvas.getBoundingClientRect();
+  console.log('Size:', size);
+
+  const hydraInstance = createHydra({
+    width: size.width,
+    height: size.height,
+    // precision: 'highp',
+    makeGlobal: true,
+    canvas,
+  });
+  new Aww((api) => awwApi = api, hydraInstance);
+
+  awwApi.onLog((log) => {
+    logs.value.push(log);
+
+    const logsContainer = $('#awwtysmLogsList');
+    const formattedLog = `[${log.level}] ${log.timestamp}<br>${log.category}: ${log.message}`;
+    logsContainer.prepend(`<p class="awwtysmLog ${log.level}">${formattedLog}</p>`);
+  });
+})();
 
 effect(() => {
   console.log('Last output:', lastOutput.value);
@@ -192,7 +207,7 @@ const saveToHistory = (entry) => {
   console.log('Saving to history:', historyEntry);
   const historyContainer = $('#awwtysmHistory');
   historyContainer.prepend(formatHistoryEntry(historyEntry));
-  forthHistory.value.push(historyEntry);
+  awwHistory.value.push(historyEntry);
 };
 
 
@@ -211,17 +226,17 @@ const vm = () => ({
     const previousStack = lastStack.value;
     lastLine.value = line;
 
-    // Use the existing forthApi instance
-    context.value = forthApi;
-    forthApi.readLine(line, (output) => {
+    // Use the existing awwApi instance
+    context.value = awwApi;
+    awwApi.readLine(line, (output) => {
       lastOutput.value = output;
     });
 
-    lastStack.value = forthApi.getStack();
-    currentDictionary.value = forthApi.getDictionary();
-    parsedTokens.value = forthApi.getParsedTokens();
-    logs.value = forthApi.getLogs();
-    memory.value = forthApi.getMemory();
+    lastStack.value = awwApi.getStack();
+    currentDictionary.value = awwApi.getDictionary();
+    parsedTokens.value = awwApi.getParsedTokens();
+    logs.value = awwApi.getLogs();
+    memory.value = awwApi.getMemory();
 
     saveToHistory({
       line,
@@ -234,7 +249,7 @@ const vm = () => ({
 
     // return lastOutput.value;
   },
-  forth,
+  aww: awwApi,
   lastOutput,
   lastStack,
   lastLine,
