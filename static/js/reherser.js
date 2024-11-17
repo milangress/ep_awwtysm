@@ -26,7 +26,8 @@ function Stack(name) {
 }
 
 function Dictionary() {
-  var dict = [];
+  var dict = new Map();
+  let redefinedWords = new Map();
 
   function add(name, definition, isPermanent = false) {
     // console.log("Adding word to dictionary: ", name, definition, isPermanent);
@@ -34,49 +35,105 @@ function Dictionary() {
       console.log("Trying to add word with null name to dictionary");
       throw new Error("Cant add null name");
     }
-    dict.unshift([name.toLowerCase(), definition, isPermanent]);
+    dict.set(name.toLowerCase(), [definition, isPermanent]);
   }
 
   function lookup(key) {
     key = key.toLowerCase();
-    var item = dict.find(function (item) {
-      return item[0] === key;
-    });
-    // console.log("Looking up word in dictionary: ", key, item, "found: ", item ? item[1] : null);
+    
+    // Keep track of seen words to detect circular definitions
+    const seenWords = new Set();
+    
+    // Follow chain of redefinitions
+    while (true) {
+      // Check for circular definitions
+      if (seenWords.has(key)) {
+        throw new Error("Circular definition detected for word: " + key);
+      }
+      seenWords.add(key);
 
-    return item ? item[1] : null;
+      // Check if word is redefined
+      let redefinedWord = redefinedWords.get(key);
+      if (redefinedWord) {
+        const [definition, _] = redefinedWord;
+        key = definition.toLowerCase(); // Update key to follow the chain
+        continue;
+      }
+
+      // Look up in main dictionary
+      var item = dict.get(key);
+      if (!item) {
+        // throw new Error("Word not found in dictionary: " + key);
+        console.warn("Word not found in dictionary: " + key);
+        return null;
+      }
+      
+      return item[0];
+    }
   }
 
   function isPermanent(key) {
     key = key.toLowerCase();
-    var item = dict.find(function (item) {
-      return item[0] === key;
-    });
+    let item = dict.get(key) || redefinedWords.get(key);
+    
+    if (!item) {
+      throw new Error("Word not found in dictionary: " + key);
+    }
 
-    return item ? item[2] : false;
+    return item[1];
   }
 
   function redefine(key, newDefinition, isPermanent) {
     key = key.toLowerCase();
-    var index = dict.findIndex(function (item) {
-      return item[0] === key;
-    });
+    let isInDict = dict.has(key) || redefinedWords.has(key);
 
-    // console.log("Redefining word in dictionary: ", key, newDefinition, isPermanent, "at index: ", index);
-
-    if (index !== -1) {
-      dict[index] = [key, newDefinition, isPermanent];
-    } else {
-      // If the word doesn't exist, add it
-      add(key, newDefinition, isPermanent);
+    if (isInDict) {
+      throw new Error("Cant redefine word that is already in dictionary: " + key + " -> " + newDefinition);
     }
+
+    console.log("Redefining word in dictionary: ", key, newDefinition, isPermanent, "is in dict: ", isInDict);
+
+    redefinedWords.set(key, [newDefinition, isPermanent]);
   }
 
   function print() {
-    return dict;
+    return {
+      dict: dict,
+      redefinedWords: redefinedWords,
+      resolvedDict: resolvedDict()
+    }
   }
 
+  function resolvedDict() {
+     // Create a new Map for the resolved dictionary
+     const resolvedDict = new Map();
+      
+     // First add all non-redefined words from the original dictionary
+     for (const [key, [definition, isPermanent]] of dict) {
+       resolvedDict.set(key, [definition, isPermanent]);
+     }
+     
+     // Resolve all redefined words
+     for (const [key, [definition, isPermanent]] of redefinedWords) {
+       try {
+         // Use lookup to get the final resolved definition
+         const resolvedDefinition = this.lookup(key);
+         resolvedDict.set(key, [resolvedDefinition, isPermanent]);
+       } catch (error) {
+         // Skip any circular definitions or invalid references
+         console.warn(`Skipping invalid redefinition for '${key}': ${error.message}`);
+       }
+     }
+     
+     return resolvedDict;
+  }
+
+
+
   return {
+    get dict() {
+      return resolvedDict();
+    },
     add: add,
     lookup: lookup,
     isPermanent: isPermanent,
@@ -411,34 +468,34 @@ function addPredefinedWords(addToDictionary, readLines, next) {
     context.stack.push(Math.floor(Math.random() * range));
   });
 
-  readLines([
-    ": cells   1 * ;",
-    ": cr      10 emit ;",
-    ": space   32 emit ;",
-    ": spaces  0 do space loop ;",
-    ": 0=      0 = ;",
-    ": 0<      0 < ;",
-    ": 0>      0 > ;",
-    ": ?dup    dup if dup then ;",
-    ": 2dup    over over ;",
-    ": 1+      1 + ;",
-    ": 1-      1 - ;",
-    ": 2+      2 + ;",
-    ": 2-      2 - ;",
-    ": 2*      2 * ;",
-    ": 2/      2 / ;",
-    ": negate  -1 * ;",
-    ": abs     dup 0< if negate then ;",
-    ": min     2dup < if drop else swap drop then ;",
-    ": max     2dup < if swap drop else drop then ;",
-    ": ?       @ . ;",
-    ": +!      dup @ rot + swap ! ;",
+  // readLines([
+  //   ": cells   1 * ;",
+  //   ": cr      10 emit ;",
+  //   ": space   32 emit ;",
+  //   ": spaces  0 do space loop ;",
+  //   ": 0=      0 = ;",
+  //   ": 0<      0 < ;",
+  //   ": 0>      0 > ;",
+  //   ": ?dup    dup if dup then ;",
+  //   ": 2dup    over over ;",
+  //   ": 1+      1 + ;",
+  //   ": 1-      1 - ;",
+  //   ": 2+      2 + ;",
+  //   ": 2-      2 - ;",
+  //   ": 2*      2 * ;",
+  //   ": 2/      2 / ;",
+  //   ": negate  -1 * ;",
+  //   ": abs     dup 0< if negate then ;",
+  //   ": min     2dup < if drop else swap drop then ;",
+  //   ": max     2dup < if swap drop else drop then ;",
+  //   ": ?       @ . ;",
+  //   ": +!      dup @ rot + swap ! ;",
 
-    "variable  graphics", // start of graphics memory
-    "575 cells allot", // graphics memory takes 24 * 24 = 576 cells altogether
-    "variable  last-key", // create last-key variable for keyboard input
-    "drop",
-  ], next);
+  //   "variable  graphics", // start of graphics memory
+  //   "575 cells allot", // graphics memory takes 24 * 24 = 576 cells altogether
+  //   "variable  last-key", // create last-key variable for keyboard input
+  //   "drop",
+  // ], next);
 
   addToDictionary("is", controlCode("is"));
   addToDictionary("now", controlCode("now"));
@@ -487,34 +544,34 @@ function addPredefinedWords(addToDictionary, readLines, next) {
     context.stack.push(Math.floor(Math.random() * range));
   });
 
-  // readLines([
-  //   ": cells   1 * ;",
-  //   ": cr      10 emit ;",
-  //   ": space   32 emit ;",
-  //   ": spaces  0 do space loop ;",
-  //   ": 0=      0 = ;",
-  //   ": 0<      0 < ;",
-  //   ": 0>      0 > ;",
-  //   ": ?dup    dup if dup then ;",
-  //   ": 2dup    over over ;",
-  //   ": 1+      1 + ;",
-  //   ": 1-      1 - ;",
-  //   ": 2+      2 + ;",
-  //   ": 2-      2 - ;",
-  //   ": 2*      2 * ;",
-  //   ": 2/      2 / ;",
-  //   ": negate  -1 * ;",
-  //   ": abs     dup 0< if negate then ;",
-  //   ": min     2dup < if drop else swap drop then ;",
-  //   ": max     2dup < if swap drop else drop then ;",
-  //   ": ?       @ . ;",
-  //   ": +!      dup @ rot + swap ! ;",
+  readLines([
+    ": cells   1 * ;",
+    ": cr      10 emit ;",
+    ": space   32 emit ;",
+    ": spaces  0 do space loop ;",
+    ": 0=      0 = ;",
+    ": 0<      0 < ;",
+    ": 0>      0 > ;",
+    ": ?dup    dup if dup then ;",
+    ": 2dup    over over ;",
+    ": 1+      1 + ;",
+    ": 1-      1 - ;",
+    ": 2+      2 + ;",
+    ": 2-      2 - ;",
+    ": 2*      2 * ;",
+    ": 2/      2 / ;",
+    ": negate  -1 * ;",
+    ": abs     dup 0< if negate then ;",
+    ": min     2dup < if drop else swap drop then ;",
+    ": max     2dup < if swap drop else drop then ;",
+    ": ?       @ . ;",
+    ": +!      dup @ rot + swap ! ;",
 
-  //   "variable  graphics", // start of graphics memory
-  //   "575 cells allot", // graphics memory takes 24 * 24 = 576 cells altogether
-  //   "variable  last-key", // create last-key variable for keyboard input
-  //   "drop",
-  // ], next);
+    "variable  graphics", // start of graphics memory
+    "575 cells allot", // graphics memory takes 24 * 24 = 576 cells altogether
+    "variable  last-key", // create last-key variable for keyboard input
+    "drop",
+  ], next);
 }
 
 /*
@@ -817,11 +874,22 @@ function Forth(next) {
 
   function startDefinition(name, isPermanent = false) {
     currentDefinition = { name: name, actions: [], isPermanent: isPermanent };
+    console.log('start definition', name, currentDefinition);
   }
 
   function endDefinition() {
+    console.log('end definition', currentDefinition);
     compileAndAddToDictionary(currentDefinition.name, currentDefinition.actions, currentDefinition.isPermanent);
     currentDefinition = null;
+  }
+
+  function addActionToCurrentDefinition(action) {
+    console.log('add action to current definition', action);
+    if (action.code === ";") {
+      endDefinition();
+    } else {
+      currentDefinition.actions.push(action);
+    }
   }
 
   function executeRuntimeAction(tokenizer, action, next) {
@@ -869,6 +937,7 @@ function Forth(next) {
 
   // Read a line of input. Callback is called with output for this line.
   function readLine(line, outputCallback, next) {
+    console.log('read line', line);
     if (!next) {
       next = outputCallback;
       outputCallback = null;
@@ -880,23 +949,37 @@ function Forth(next) {
     // processNextToken recursively executes tokens
     function processNextToken() {
       var token = tokenizer.peekToken();
+      console.log('process next token', token);
 
       if (!token) {
         if (!currentDefinition) { // don't append output while definition is in progress
+          console.log('no token, no current definition, append output');
           context.addOutput(" ok");
         }
         next();
         return;
       }
 
-      if (token.value === '~' && isCapitalized(tokenizer.peekToken(2)?.value) && tokenizer.peekToken(3)?.value === 'is') {
+      const peekAction = tokenToAction(token);
+
+
+      if (peekAction?.code === '~' && isCapitalized(tokenizer.peekToken(2)?.value) && peekAction3?.code  === 'is') {
         handlePermanentDefinition();
-      } else if (isCapitalized(token.value) && tokenizer.peekToken(2)?.value === 'is') {
-        handleDefinition(false);
+      } else if (isCapitalized(token.value) && tokenToAction(tokenizer.peekToken(2))?.code === 'is') {
+        handleDefinitionTypeIS(false);
+      } else if (peekAction?.code === ':') {
+        tokenizer.nextToken(); // consume ':'
+        var word = tokenizer.nextToken().value;
+        context.parsedTokens.push(word);
+        startDefinition(word);
+      } else if (currentDefinition) {
+        var action = tokenToAction(tokenizer.nextToken());
+        addActionToCurrentDefinition(action);
       } else {
         var action = tokenToAction(tokenizer.nextToken());
         executeRuntimeAction(tokenizer, action, handleOutput);
       }
+      processNextToken();
     }
 
     function isCapitalized(word) {
@@ -905,25 +988,21 @@ function Forth(next) {
 
     function handlePermanentDefinition() {
       tokenizer.nextToken(); // consume '~'
-      handleDefinition(true);
+      handleDefinitionTypeIS(true);
     }
 
-    function handleDefinition(isPermanent) {
+    function handleDefinitionTypeIS(isPermanent) {
+      console.log("Handling definition type IS: ", isPermanent);
       var word = tokenizer.nextToken().value;
       context.parsedTokens.push(word);
       const definitionWord = tokenizer.nextToken().value;
       context.parsedTokens.push(definitionWord);
       
-      if (tokenizer.peekToken()?.value === 'now') {
+      if (tokenToAction(tokenizer.peekToken())?.code === 'now') {
         tokenizer.nextToken(); // consume 'now'
         var newDefinition = tokenToAction(tokenizer.nextToken());
         context.dictionary.redefine(word, newDefinition, isPermanent);
-      } else if (tokenizer.peekToken()) {
-        // Inline definition
-        var definition = tokenToAction(tokenizer.nextToken());
-        addToDictionary(word, definition, isPermanent);
-      } else {
-        // Multi-line definition
+      } else  {
         startDefinition(word, isPermanent);
       }
       

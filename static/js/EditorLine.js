@@ -117,6 +117,7 @@ class EditorLine {
       right: 20px;
       color: #888;
       font-style: italic;
+      text-align: right;
       top: ${this.$position.value.top}px;
     `;
 
