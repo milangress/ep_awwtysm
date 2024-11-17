@@ -137,6 +137,10 @@ class EditorLine {
 
   execute() {
     console.log('Executing line:', this.$text.value);
+
+    // const result = vmWrapper().readLine(this.$text.value);
+    // console.log('Result:', result);
+
     const success = Math.random() > 0.5; // Mock execution
     this.pulse(success);
     this.$result.value = this.$text.value; // Mock result
