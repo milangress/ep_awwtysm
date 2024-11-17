@@ -1,5 +1,8 @@
 'use strict';
 
+exports.aceEditorCSS = (hookName, cb) => ['/ep_awwtysm/static/css/awwEditorOuter.css'];
+
+
 const EditorLineManager = require('./EditorLineManager');
 
 // Create a single instance of the manager
@@ -46,7 +49,6 @@ exports.acePostWriteDomLineHTML = (hookName, args) => {
   }
 };
 
-exports.aceEditorCSS = (hookName, cb) => ['/ep_awwtysm/static/css/awwtysm.css'];
 
 exports.postAceInit = (hookName, context) => {
   console.log('postAceInit', context);
@@ -150,5 +152,15 @@ exports.postToolbarInit = (hookName, context) => {
     lineManager.executeAll(context.rep.lines);
   });
 
+  editbar.registerDropdownCommand('awwtysmLogsModal', () => {
+    console.log('awwtysmLogsModal');
+  });
+
+  $('#awwtysmLogsModalButton').click(() => {
+    $('#awwtysmLogsModal').toggleClass('popup-show');
+  });
+
   return true;
 };
+
+

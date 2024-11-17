@@ -11,6 +11,17 @@ exports.eejsBlock_editbarMenuLeft = (hookName, args, cb) => {
   return cb();
 };
 
+exports.eejsBlock_editorContainerBox = (hookName, args, cb) => {
+  args.content += eejs.require('ep_awwtysm/templates/logsModal.ejs', {}, module);
+  return cb();
+};
+
+exports.eejsBlock_styles = (hookName, args, cb) => {
+  args.content +=
+  "<link href='../static/plugins/ep_awwtysm/static/css/awwGlobal.css' rel='stylesheet'>";
+  return cb();
+};
+
 
 exports.padInitToolbar = (hookName, args, cb) => {
   const toolbar = args.toolbar;

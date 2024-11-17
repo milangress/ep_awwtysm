@@ -1,7 +1,5 @@
 {
-  "ep_awwtysm.align" : "Align",
-  "ep_awwtysm.toolbar.left.title" : "Left",
-  "ep_awwtysm.toolbar.center.title" : "Center",
-  "ep_awwtysm.toolbar.right.title" : "Right",
-  "ep_awwtysm.toolbar.justify.title" : "Justify"
+  "ep_awwtysm.name" : "Aww TYSM",
+  "ep_awwtysm.logsModal.title" : "Aww TYSM Logs",
+  "ep_awwtysm.logsModal.button" : "Logs"
 }

@@ -794,6 +794,7 @@ const LogLevel = {
 function createLogger(initialLevel = LogLevel.INFO) {
   const logs = [];
   let currentLevel = initialLevel;
+  let logCallback = null;
 
   function addLog(level, category, message, data = null) {
     if (level >= currentLevel) {
@@ -805,6 +806,10 @@ function createLogger(initialLevel = LogLevel.INFO) {
         data
       };
       logs.push(entry);
+      
+      if (logCallback) {
+        logCallback(entry);
+      }
     }
   }
 
@@ -827,6 +832,10 @@ function createLogger(initialLevel = LogLevel.INFO) {
     logs.length = 0;
   }
 
+  function setLogCallback(callback) {
+    logCallback = callback;
+  }
+
   return {
     debug: (category, message, data) => addLog(LogLevel.DEBUG, category, message, data),
     info: (category, message, data) => addLog(LogLevel.INFO, category, message, data),
@@ -835,7 +844,8 @@ function createLogger(initialLevel = LogLevel.INFO) {
     trace: (category, message, data) => addLog(LogLevel.TRACE, category, message, data),
     setLevel,
     getLogs,
-    clearLogs
+    clearLogs,
+    setLogCallback
   };
 }
 
@@ -877,8 +887,13 @@ function Forth(next) {
 
   // Convert token into an action that executes that token's behavior
   function tokenToAction(token) {
+    if (!token) return null;
+    if (token.value === undefined) return null;
+
     var word = token.value;
     var definition = context.dictionary.lookup(word);
+
+    context.logger.trace('tokenToAction', `Token: ${JSON.stringify(token)} -> Definition: ${JSON.stringify(definition)}`);
 
     if (token.isStringLiteral) {
       return namedFunction(word, 'String', function (context) {
@@ -891,6 +906,7 @@ function Forth(next) {
         context.stack.push(+word);
       });
     }
+    context.logger.trace('tokenToAction', `Token: ${JSON.stringify(token)} -> null`);
     return null;
   }
 
@@ -1009,18 +1025,20 @@ function Forth(next) {
         return;
       }
 
-      context.logger.trace('Runtime', `Processing Next token: ${token.value}`);
+      context.logger.trace('Runtime', `Processing Next token: ${JSON.stringify(token)}`);
 
 
       const peekAction = tokenToAction(token);
-      const peekAction2 = tokenToAction(tokenizer.peekToken(2));
-      const peekAction3 = tokenToAction(tokenizer.peekToken(3));
+      const peekNextToken = tokenizer.peekToken(1);
+      const peekNextToken2 = tokenizer.peekToken(2);
+
+      context.logger.trace('Runtime', `Peek Next Token: ${JSON.stringify(peekNextToken)}, Peek Next Next Token: ${JSON.stringify(peekNextToken2)}`);
 
 
-      if (peekAction?.code === '~' && isCapitalized(peekAction2?.value) && peekAction3?.code  === 'is') {
-        context.logger.trace('Runtime', `Handling permanent definition: ${token.value} ${peekAction2.value} ${peekAction3.value}`);
+      if (peekNextToken2 && peekAction?.code === '~' && isCapitalized(peekNextToken?.value) && tokenToAction(peekNextToken2)?.code  === 'is') {
+        context.logger.trace('Runtime', `Handling permanent definition: ${token.value} ${peekNextToken.value} ${peekNextToken2.value}`);
         handlePermanentDefinition();
-      } else if (isCapitalized(token.value) && peekAction2?.code === 'is') {
+      } else if (peekNextToken && isCapitalized(token.value) && tokenToAction(peekNextToken)?.code === 'is') {
         context.logger.trace('Runtime', `Handling non-permanent definition: ${token.value} ${peekAction2.value}`);
         handleDefinitionTypeIS(false);
       } else if (peekAction?.code === ':') {
@@ -1154,6 +1172,10 @@ function Forth(next) {
       },
       clearLogs: function() {
         context.logger.clearLogs();
+      },
+      // Add callback setter for logs
+      onLog: function(callback) {
+        context.logger.setLogCallback(callback);
       }
     });
   });

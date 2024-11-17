@@ -1,0 +1,22 @@
+<div id="awwtysmLogsModal" class="popup">
+    <% e.begin_block("awwtysmLogsModal"); %>
+    <div class="popup-content">
+        <h1 data-l10n-id="ep_awwtysm.logsModal.title">Aww TYSM Logs</h1>   
+        <li id="awwtysmLogsFilter" class="acl-write">
+            <select id="awwtysmLogsFilterSelection">
+                <option value="dummy" selected data-l10n-id="ep_awwtysm.logsModal.filter.all">All</option>
+                <option value="-1" data-l10n-id="ep_awwtysm.logsModal.filter.info">Trace</option>
+                <option value="0" data-l10n-id="ep_awwtysm.logsModal.filter.info">Info</option>
+                <option value="1" data-l10n-id="ep_awwtysm.logsModal.filter.debug">Debug</option>
+                <option value="2" data-l10n-id="ep_awwtysm.logsModal.filter.warning">Warning</option>
+                <option value="3" data-l10n-id="ep_awwtysm.logsModal.filter.error">Error</option>
+            </select>
+        </li>         
+        <div id="awwtysmLogsMain">
+            <div id="awwtysmLogsList">
+                <p>No logs yet</p>
+            </div>
+        </div>
+    </div>
+    <% e.end_block(); %>
+</div>

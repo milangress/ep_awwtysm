@@ -1,0 +1,31 @@
+#awwtysmLogsModal {
+    min-width: 500px;
+}
+
+#awwtysmLogsList {
+    max-height: 80vh;
+    overflow-y: auto;
+    font-size: 0.7em;
+    font-family: monospace;
+}
+
+#awwtysmLogsList .ERROR {
+    color: red;
+}
+
+#awwtysmLogsList .WARNING {
+    color: orange;
+}
+
+#awwtysmLogsList .INFO {
+    color: blue;
+}
+
+#awwtysmLogsList .DEBUG {
+    color: green;
+}
+
+#awwtysmLogsList .TRACE {
+    color: gray;
+}
+

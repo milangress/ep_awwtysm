@@ -17,6 +17,14 @@ const context = signal(null);
 const parsedTokens = signal(null);
 const logs = signal([]);
 
+forthApi.onLog((log) => {
+  logs.value.push(log);
+
+  const logsContainer = $('#awwtysmLogsList');
+  const formattedLog = `[${log.level}] ${log.timestamp}<br>${log.category}: ${log.message}`;
+  logsContainer.prepend(`<p class="awwtysmLog ${log.level}">${formattedLog}</p>`);
+});
+
 
 effect(() => {
   console.log('Last output:', lastOutput.value);
@@ -34,9 +42,15 @@ effect(() => {
   console.log('Current dictionary:', currentDictionary.value);
 });
 
-effect(() => {
-  console.log('Logs:', logs.value);
-});
+// effect(() => {
+//   console.log('Logs:', logs.value);
+//   const logsContainer = $('#awwtysmLogsList');
+//   logsContainer.empty();
+//   logs.value.forEach((log) => {
+//     const formattedLog = `${log.timestamp} [${log.level}] ${log.category}: ${log.message}`;
+//     logsContainer.append(`<p>${formattedLog}</p>`);
+//   });
+// });
 
 const vm = () => ({
   readLine: (line) => {
