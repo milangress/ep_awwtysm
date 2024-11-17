@@ -858,7 +858,172 @@ function createLogger(initialLevel = LogLevel.INFO) {
   };
 }
 
-function Forth(next) {
+function setupHydraWords(addToDictionary, hydraInstance) {
+  if (!hydraInstance) {
+    throw new Error('Hydra instance must be provided');
+  }
+
+  // Stack for building hydra chains
+  let currentChain = null;
+
+  // Helper to get args from stack in correct order with defaults
+  function getArgs(context, count, defaults = []) {
+    const args = [];
+    for (let i = 0; i < count; i++) {
+      // If stack is empty, use default value
+      args.unshift(context.stack.length > 0 ? context.stack.pop() : defaults[i]);
+    }
+    return args;
+  }
+
+  // Sources
+  addToDictionary("osc", function(context) {
+    const [freq = 60, sync = 0.1, offset = 0] = getArgs(context, 3, [60, 0.1, 0]);
+    currentChain = hydraInstance.osc(freq, sync, offset);
+  });
+
+  addToDictionary("solid", function(context) {
+    const [r = 1, g = 1, b = 1, a = 1] = getArgs(context, 4, [1, 1, 1, 1]);
+    currentChain = hydraInstance.solid(r, g, b, a);
+  });
+
+  addToDictionary("noise", function(context) {
+    const [scale = 10, offset = 0.1] = getArgs(context, 2, [10, 0.1]);
+    currentChain = hydraInstance.noise(scale, offset);
+  });
+
+  addToDictionary("voronoi", function(context) {
+    const [scale = 5, speed = 0.3, blending = 0.3] = getArgs(context, 3, [5, 0.3, 0.3]);
+    currentChain = hydraInstance.voronoi(scale, speed, blending);
+  });
+
+  addToDictionary("shape", function(context) {
+    const [sides = 3, radius = 0.3, smoothing = 0.01] = getArgs(context, 3, [3, 0.3, 0.01]);
+    currentChain = hydraInstance.shape(sides, radius, smoothing);
+  });
+
+  // Geometry
+  addToDictionary("rotate", function(context) {
+    const [angle = 10, speed = 0] = getArgs(context, 2, [10, 0]);
+    if (!currentChain) throw new Error("No active hydra chain");
+    currentChain = currentChain.rotate(angle, speed);
+  });
+
+  addToDictionary("scale", function(context) {
+    const [amount = 1.5] = getArgs(context, 1, [1.5]);
+    if (!currentChain) throw new Error("No active hydra chain");
+    currentChain = currentChain.scale(amount);
+  });
+
+  addToDictionary("pixelate", function(context) {
+    const [pixelX = 20, pixelY = 20] = getArgs(context, 2, [20, 20]);
+    if (!currentChain) throw new Error("No active hydra chain");
+    currentChain = currentChain.pixelate(pixelX, pixelY);
+  });
+
+  addToDictionary("kaleid", function(context) {
+    const [nSides = 4] = getArgs(context, 1, [4]);
+    if (!currentChain) throw new Error("No active hydra chain");
+    currentChain = currentChain.kaleid(nSides);
+  });
+
+  // Color
+  addToDictionary("colorama", function(context) {
+    const [amount = 0.005] = getArgs(context, 1, [0.005]);
+    if (!currentChain) throw new Error("No active hydra chain");
+    currentChain = currentChain.colorama(amount);
+  });
+
+  addToDictionary("contrast", function(context) {
+    const [amount = 1.6] = getArgs(context, 1, [1.6]);
+    if (!currentChain) throw new Error("No active hydra chain");
+    currentChain = currentChain.contrast(amount);
+  });
+
+  addToDictionary("brightness", function(context) {
+    const [amount = 0.4] = getArgs(context, 1, [0.4]);
+    if (!currentChain) throw new Error("No active hydra chain");
+    currentChain = currentChain.brightness(amount);
+  });
+
+  addToDictionary("posterize", function(context) {
+    const [bins = 3, gamma = 0.6] = getArgs(context, 2, [3, 0.6]);
+    if (!currentChain) throw new Error("No active hydra chain");
+    currentChain = currentChain.posterize(bins, gamma);
+  });
+
+  // Blend modes
+  addToDictionary("blend", function(context) {
+    const [texture, amount = 0.5] = getArgs(context, 2, [null, 0.5]);
+    if (!currentChain) throw new Error("No active hydra chain");
+    currentChain = currentChain.blend(texture, amount);
+  });
+
+  addToDictionary("diff", function(context) {
+    const [texture] = getArgs(context, 1, [null]);
+    if (!currentChain) throw new Error("No active hydra chain");
+    currentChain = currentChain.diff(texture);
+  });
+
+  addToDictionary("mult", function(context) {
+    const [texture, amount = 1] = getArgs(context, 2, [null, 1]);
+    if (!currentChain) throw new Error("No active hydra chain");
+    currentChain = currentChain.mult(texture, amount);
+  });
+
+  addToDictionary("add", function(context) {
+    const [texture, amount = 1] = getArgs(context, 2, [null, 1]);
+    if (!currentChain) throw new Error("No active hydra chain");
+    currentChain = currentChain.add(texture, amount);
+  });
+
+  // Modulate
+  addToDictionary("modulate", function(context) {
+    const [texture, amount = 0.1] = getArgs(context, 2, [null, 0.1]);
+    if (!currentChain) throw new Error("No active hydra chain");
+    currentChain = currentChain.modulate(texture, amount);
+  });
+
+  addToDictionary("modulateScale", function(context) {
+    const [texture, multiple = 1, offset = 1] = getArgs(context, 3, [null, 1, 1]);
+    if (!currentChain) throw new Error("No active hydra chain");
+    currentChain = currentChain.modulateScale(texture, multiple, offset);
+  });
+
+  addToDictionary("modulatePixelate", function(context) {
+    const [texture, multiple = 10, offset = 3] = getArgs(context, 3, [null, 10, 3]);
+    if (!currentChain) throw new Error("No active hydra chain");
+    currentChain = currentChain.modulatePixelate(texture, multiple, offset);
+  });
+
+  // Output functions
+  addToDictionary("out", function(context) {
+    const [buffer = 0] = getArgs(context, 1, [0]);
+    if (!currentChain) throw new Error("No active hydra chain");
+    currentChain.out(buffer);
+  });
+
+  // Final evaluation word
+  addToDictionary("hydra", function(context) {
+    if (!currentChain) throw new Error("No hydra chain to evaluate");
+    // Reset chain after evaluation
+    currentChain = null;
+  });
+
+  // Buffer management
+  addToDictionary("src", function(context) {
+    const [buffer = 0] = getArgs(context, 1, [0]);
+    currentChain = hydraInstance.src(buffer);
+  });
+
+  // Render management
+  addToDictionary("render", function(context) {
+    const [buffer = 0] = getArgs(context, 1, [0]);
+    hydraInstance.render(buffer);
+  });
+}
+
+function Forth(next, hydraInstance) {
   // Core structures
   var context = {
     stack: Stack('Argument Stack'),
@@ -1142,6 +1307,11 @@ function Forth(next) {
   }
 
   addPredefinedWords(addToDictionary, readLines, function () {
+    // Set up hydra words if instance provided
+    if (hydraInstance) {
+      setupHydraWords(addToDictionary, hydraInstance);
+    }
+
     next({
       readLine: readLine,
       readLines: readLines,
