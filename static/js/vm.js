@@ -1,13 +1,17 @@
 'use strict';
 
 const {signal, effect} = require('@preact/signals-core');
-const forth = require('./reherser');
+const {Aww} = require('./reherser');
+const {hydra} = require('./reherser');
+
+const hydraInstance = hydra({
+  detectAudio: false,
+});
 
 // Create a single instance and store its API
 let forthApi = null;
-forth((api) => {
-  forthApi = api;
-});
+
+new Aww((api) => forthApi = api, hydraInstance);
 
 const lastOutput = signal(null);
 const lastStack = signal([]);
