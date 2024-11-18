@@ -159,9 +159,9 @@ class EditorLine {
 
     if (result) {
       this.$result.value = result;
-    } else {
-      this.$result.value = vm().lastStack.value;
     }
+    this.$result.value += ` ${vm().lastStack.value}`;
+
 
     if (error) {
       this.$result.value += `\n${error}`;

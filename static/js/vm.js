@@ -12,7 +12,7 @@ const stage = Stage.getInstance();
 let awwApi = null;
 
 
-const lastOutput = signal(null);
+const lastOutput = signal([]);
 const lastStack = signal([]);
 const lastLine = signal(null);
 const currentDictionary = signal(null);
@@ -21,7 +21,7 @@ const parsedTokens = signal(null);
 const logs = signal([]);
 const memory = signal(null);
 const awwHistory = signal([]);
-
+const lineBuffer = signal([]);
 
 (async () => {
   const canvas = await stage.hydraCanvas();
@@ -51,7 +51,7 @@ const awwHistory = signal([]);
 })();
 
 effect(() => {
-  console.log('Last output:', lastOutput.value);
+  console.log('Last output:', lastOutput.value.join(' '));
 });
 
 
@@ -224,23 +224,62 @@ const saveToHistory = (entry) => {
 //   });
 // });
 
+const updateDictionary = () => {
+  currentDictionary.value = awwApi.getDictionary();
+};
+const updateStack = () => {
+  lastStack.value = awwApi.getStack();
+};
+const updateParsedTokens = () => {
+  parsedTokens.value = awwApi.getParsedTokens();
+};
+const updateLogs = () => {
+  logs.value = awwApi.getLogs();
+};
+const updateMemory = () => {
+  memory.value = awwApi.getMemory();
+};
+
+const addOutput = (line, output) => {
+  if (output === undefined) return;
+  console.log('Output:', output);
+  lastOutput.value.push(output);
+};
+
+const addLine = (codeLine) => {
+  lineBuffer.value.push(codeLine);
+  return codeLine;
+};
+
 const vm = () => ({
   readLine: (line) => {
-    const previousStack = lastStack.value;
+    const previousStack = String(lastStack.value);
     lastLine.value = line;
+    lastOutput.value = [];
 
     // Use the existing awwApi instance
     context.value = awwApi;
-    awwApi.readLine(line, (output) => {
-      console.log('Output:', output);
-      lastOutput.value = output;
+
+    let $line;
+
+    const codeLines = line.split('\n');
+
+    // Handle multiple lines - this will only come up when text is pasted.
+    awwApi.readLines(codeLines, {
+      lineCallback: (codeLine) => {
+        $line = addLine(codeLine);
+      },
+      outputCallback: (output) => {
+        addOutput($line, output);
+      },
+    }, () => {
+      updateStack();
+      updateDictionary();
+      updateParsedTokens();
+      updateLogs();
+      updateMemory();
     });
 
-    lastStack.value = awwApi.getStack();
-    currentDictionary.value = awwApi.getDictionary();
-    parsedTokens.value = awwApi.getParsedTokens();
-    logs.value = awwApi.getLogs();
-    memory.value = awwApi.getMemory();
 
     saveToHistory({
       line,
@@ -250,8 +289,7 @@ const vm = () => ({
       memory: memory.value,
       parsedTokens: parsedTokens.value,
     });
-
-    // return lastOutput.value;
+    return lastOutput.value;
   },
   aww: awwApi,
   lastOutput,
