@@ -25,36 +25,15 @@ const memory = signal(null);
 const awwHistory = signal([]);
 const lineBuffer = signal([]);
 
-(async () => {
-  // console.log('Waiting for 5 seconds before loading vm');
-  // await new Promise((resolve) => setTimeout(resolve, 5000));
-  const canvas = await stage.hydraCanvas();
-  await stage.show();
-
-  const size = canvas.getBoundingClientRect();
-  console.log('Size:', size);
-
-  const hydraInstance = createHydra({
-    width: size.width,
-    height: size.height,
-    // precision: 'highp',
-    makeGlobal: true,
-    canvas,
-  });
-  new Aww((api) => {
-    awwApi = api;
-    attachListeners();
-  }, hydraInstance);
-
-  new ReplModal(hydraInstance);
-})();
-
-// effect(() => {
-//   console.log('Last output:', lastOutput.value.join(' '));
-// });
+let repl = null;
 
 attachListeners = () => {
-  if (!awwApi) return;
+  if (!awwApi) {
+    console.error('attachListeners called without awwApi');
+    return;
+  }
+  console.log('Attaching listeners');
+
   awwApi.onLog((log) => {
     logs.value.push(log);
 
@@ -62,7 +41,54 @@ attachListeners = () => {
     const formattedLog = `[${log.level}] ${log.timestamp}<br>${log.category}: ${log.message}`;
     logsContainer.prepend(`<p class="awwtysmLog ${log.level}">${formattedLog}</p>`);
   });
+
+  console.log('Listeners attached');
+
+  console.log('Repl:', repl);
 };
+
+
+(async () => {
+  try {
+    console.log('Starting VM initialization');
+
+    const canvas = await stage.hydraCanvas();
+    await stage.show();
+
+    const size = canvas.getBoundingClientRect();
+    console.log('Size:', size);
+
+    const hydraInstance = createHydra({
+      width: size.width,
+      height: size.height,
+      makeGlobal: true,
+      canvas,
+    });
+    console.log('Hydra instance created');
+
+    // Create main Aww instance
+    console.log('Creating main Aww instance');
+    await new Promise((resolve) => {
+      new Aww((api) => {
+        console.log('Main Aww instance initialized');
+        awwApi = api;
+        attachListeners();
+        resolve();
+      }, hydraInstance);
+    });
+
+    // Create REPL instance
+    console.log('Creating REPL instance');
+    repl = new ReplModal(hydraInstance, Aww);
+    console.log('REPL instance created');
+  } catch (error) {
+    console.error('Error during VM initialization:', error);
+  }
+})();
+
+// effect(() => {
+//   console.log('Last output:', lastOutput.value.join(' '));
+// });
 
 
 effect(() => {

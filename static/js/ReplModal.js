@@ -1,18 +1,28 @@
 // replModal.ejs is standalone Repl for testing.
 'use strict';
 
-const {Aww} = require('./reherser');
-
 class ReplModal {
-  constructor(hydraInstance, id = 'awwtysmReplModal') {
+  constructor(hydraInstance, AwwClass, id = 'awwtysmReplModal') {
+    console.log('ReplModal constructor started', {
+      hydraInstance: !!hydraInstance,
+      AwwClass: !!AwwClass,
+      id,
+    });
+    if (!AwwClass) {
+      throw new Error('AwwClass is required');
+    }
+    if (!hydraInstance) {
+      throw new Error('hydraInstance is required');
+    }
+    if (!document.getElementById(id)) {
+      throw new Error(`Element with id ${id} not found`);
+    }
+
     this.modal = document.getElementById(id);
     this.editor = this.modal.querySelector('.awwtysmEditor');
-    this.text = this.editor.querySelector('.awwtysmEditorText');
-    this.prevLines = this.editor.querySelector('.awwtysmEditorPrevLines');
-    this.input = this.editor.querySelector('.awwtysmEditorInput');
-    this.stackViewer = this.editor.querySelector('.awwtysmEditorStackViewer');
-    this.autocomplete = this.editor.querySelector('.awwtysmEditorAutocomplete');
-
+    if (!this.editor) {
+      throw new Error('Editor element not found');
+    }
 
     this.lineBuffer = ['']; // Start line buffer with blank line
     this.selectedLine = null;
@@ -23,11 +33,51 @@ class ReplModal {
 
     this.awwApi = null;
 
-    new Aww((api) => {
+    // Initialize other DOM elements with error checking
+    this.initializeDOMElements();
+
+    // Initialize state
+    this.initializeState();
+
+    console.log('Creating new Aww instance for REPL');
+    new AwwClass((api) => {
+      console.log('REPL Aww callback received');
+      if (!api) {
+        console.error('No API received in REPL callback');
+        return;
+      }
       this.awwApi = api;
+      console.log('Setting up REPL event listeners');
       this.setupEventListeners();
     }, hydraInstance);
+
+    console.log('ReplModal constructor completed');
   }
+
+  initializeDOMElements() {
+    this.text = this.editor.querySelector('.awwtysmEditorText');
+    this.prevLines = this.editor.querySelector('.awwtysmEditorPrevLines');
+    this.input = this.editor.querySelector('.awwtysmEditorInput');
+    this.stackViewer = this.editor.querySelector('.awwtysmEditorStackViewer');
+    this.autocomplete = this.editor.querySelector('.awwtysmEditorAutocomplete');
+
+    // Verify all elements exist
+    if (!this.text || !this.prevLines || !this.input ||
+        !this.stackViewer || !this.autocomplete) {
+      throw new Error('Required DOM elements not found');
+    }
+  }
+
+  initializeState() {
+    this.lineBuffer = [''];
+    this.selectedLine = null;
+    this.stack = {current: ''};
+    this.dictionary = null;
+    this.inputHidden = false;
+    this.firstAutocompleteChoice = '';
+    this.awwApi = null;
+  }
+
 
   addLine(code) {
     this.selectedLine = null;
@@ -171,6 +221,7 @@ class ReplModal {
   }
 
   setupEventListeners() {
+    console.log('Setting up event listeners', {awwApi: this.awwApi});
     if (!this.awwApi) {
       console.error('Aww API not initialized');
       return;

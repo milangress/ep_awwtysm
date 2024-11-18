@@ -1,5 +1,16 @@
 {
-  "ep_awwtysm.name" : "Aww TYSM",
-  "ep_awwtysm.logsModal.title" : "Aww TYSM Logs",
-  "ep_awwtysm.logsModal.button" : "Logs"
+  "ep_awwtysm.name": "Aww TYSM",
+  "ep_awwtysm.logsModal.title": "Aww TYSM Logs",
+  "ep_awwtysm.logsModal.button": "Logs",
+  "ep_awwtysm.toolbar.run.title": "Run",
+  "ep_awwtysm.toolbar.run_all.title": "Run All",
+  "ep_awwtysm.mainModal.button": "Main",
+  "ep_awwtysm.mainModal.title": "Aww TYSM",
+  "ep_awwtysm.replModal.button": "REPL",
+  "ep_awwtysm.toggleStage.button": "Toggle Stage",
+  "ep_awwtysm.logsModal.filter.all": "All",
+  "ep_awwtysm.logsModal.filter.info": "Info",
+  "ep_awwtysm.logsModal.filter.debug": "Debug", 
+  "ep_awwtysm.logsModal.filter.warning": "Warning",
+  "ep_awwtysm.logsModal.filter.error": "Error"
 }

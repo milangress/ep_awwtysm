@@ -332,7 +332,7 @@ function Tokenizer(input) {
 }
 
 function addPredefinedWords(addToDictionary, readLines, next) {
-  console.log("Adding predefined words..."); 
+  console.log("Adding predefined words...", { next }); 
   
   function controlCode(code) {
     return {
@@ -642,13 +642,17 @@ console.log("Finished adding predefined words, calling next/readline");  // Add 
   // ], next);
 
   console.log("About to call readLines with basic definitions");
-  readLines([
-    ": cells   1 * ;",
-    "variable  last-key", 
-  ], (output) => {
-    console.log("ReadLines completed", { output });
-    next();
-  });
+  readLines(
+    [": cells   1 * ;", "variable  last-key"],
+    {
+      lineCallback: (line) => console.log("Processing line:", line),
+      outputCallback: (output) => console.log("Line output:", output)
+    },
+    () => {
+      console.log("Predefined words initialization completed");
+      next && next();
+    }
+  );
 
   console.log("Called readLines");
 }
@@ -15209,27 +15213,36 @@ class Aww {
 
     function readLines(codeLines, callbacks, next) {
       console.log("readLines called", { codeLines, callbacks, next });
-
-      if (callbacks && !next) {
-        console.log("Adjusting callbacks/next");
+      
+      // Handle case where callbacks is actually the next function
+      if (typeof callbacks === 'function') {
+        console.log("Converting callbacks to next");
         next = callbacks;
         callbacks = null;
       }
-    
-      if (codeLines.length == 0) {
+
+      if (codeLines.length === 0) {
         console.log("No more lines, calling next");
-        next();
+        next && next();
         return;
       }
-    
+
       var codeLine = codeLines[0];
       console.log("Processing line:", codeLine);
-    
-      callbacks && callbacks.lineCallback(codeLine);
-      readLine(codeLine, callbacks && callbacks.outputCallback, function () {
-        console.log("Line processed, continuing with rest");
-        readLines(codeLines.slice(1), callbacks, next);
-      });
+
+      const outputCallback = callbacks?.outputCallback;
+      const lineCallback = callbacks?.lineCallback;
+
+      lineCallback && lineCallback(codeLine);
+      
+      readLine(
+        codeLine, 
+        outputCallback,
+        function () {
+          console.log("Line processed, continuing with rest");
+          readLines(codeLines.slice(1), callbacks, next);
+        }
+      );
     }
 
     // Set the API functions
@@ -15436,22 +15449,26 @@ class Aww {
     console.log("Starting predefined words initialization");
 
     
-    addPredefinedWords(addToDictionary, readLines, () => {
-      console.log("Predefined words callback triggered");
-      
-      if (typeof window !== "undefined" && hydraInstance) {
-        console.log("Setting up Hydra words");
-        setupHydraWords(addToDictionary, hydraInstance);
+    console.log("Starting predefined words initialization");
+    addPredefinedWords(
+      (name, definition, isPermanent) => addToDictionary(name, definition, isPermanent),
+      (lines, callbacks, cb) => readLines(lines, callbacks, cb),
+      () => {
+        console.log("Predefined words initialization completed, about to call next with API");
+        try {
+          next(api);
+          console.log("Next callback completed successfully");
+        } catch (e) {
+          console.error("Error in next callback:", e);
+          throw e;
+        }
       }
+    );
 
-      console.log("About to call next callback with API");
-      try {
-        next(api);
-      } catch (e) {
-        console.error("Error in next callback:", e);
-      }
-      console.log("Next callback completed");
-    });
+    if (typeof window !== "undefined" && hydraInstance) {
+      console.log("Setting up Hydra words");
+      setupHydraWords(addToDictionary, hydraInstance);
+    }
 
     console.log("Aww constructor completed");
   }
