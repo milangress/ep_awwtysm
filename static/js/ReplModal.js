@@ -59,8 +59,7 @@ class ReplModal {
   }
 
   updateStack() {
-    this.stack.current = this.awwApi.getStack();
-    this.stackViewer.textContent = this.stack.current || '';
+    this.stackViewer.textContent = this.awwApi.getStack() || '';
   }
 
   updateDictionary() {

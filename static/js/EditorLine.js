@@ -37,7 +37,8 @@ class EditorLine {
     // Setup intersection observer for this line
     this.setupIntersectionObserver();
 
-    effect(() => console.log('position', this.$position.value));
+    // effect(() => console.log('position', this.$position.value));
+
     effect(() => {
       if (this.$resultElement.value && this.$resultString.value) {
         const result = this.$resultString.value;
