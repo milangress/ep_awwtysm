@@ -332,6 +332,8 @@ function Tokenizer(input) {
 }
 
 function addPredefinedWords(addToDictionary, readLines, next) {
+  console.log("Adding predefined words..."); 
+  
   function controlCode(code) {
     return {
       isControlCode: true,
@@ -608,35 +610,47 @@ addToDictionary('"', function(context) {
   context.stack.push(stringContent);
 });
 
+console.log("Finished adding predefined words, calling next/readline");  // Add this debug log
 
 
+  // readLines([
+  //   ": cells   1 * ;",
+  //   ": cr      10 emit ;",
+  //   ": space   32 emit ;",
+  //   ": spaces  0 do space loop ;",
+  //   ": 0=      0 = ;",
+  //   ": 0<      0 < ;",
+  //   ": 0>      0 > ;",
+  //   ": ?dup    dup if dup then ;",
+  //   ": 2dup    over over ;",
+  //   ": 1+      1 + ;",
+  //   ": 1-      1 - ;",
+  //   ": 2+      2 + ;",
+  //   ": 2-      2 - ;",
+  //   ": 2*      2 * ;",
+  //   ": 2/      2 / ;",
+  //   ": negate  -1 * ;",
+  //   ": abs     dup 0< if negate then ;",
+  //   ": min     2dup < if drop else swap drop then ;",
+  //   ": max     2dup < if swap drop else drop then ;",
+  //   ": ?       @ . ;",
+  //   ": +!      dup @ rot + swap ! ;",
+
+  //   "variable  graphics", // start of graphics memory
+  //   "575 cells allot", // graphics memory takes 24 * 24 = 576 cells altogether
+  //   "variable  last-key", // create last-key variable for keyboard input
+  // ], next);
+
+  console.log("About to call readLines with basic definitions");
   readLines([
     ": cells   1 * ;",
-    ": cr      10 emit ;",
-    ": space   32 emit ;",
-    ": spaces  0 do space loop ;",
-    ": 0=      0 = ;",
-    ": 0<      0 < ;",
-    ": 0>      0 > ;",
-    ": ?dup    dup if dup then ;",
-    ": 2dup    over over ;",
-    ": 1+      1 + ;",
-    ": 1-      1 - ;",
-    ": 2+      2 + ;",
-    ": 2-      2 - ;",
-    ": 2*      2 * ;",
-    ": 2/      2 / ;",
-    ": negate  -1 * ;",
-    ": abs     dup 0< if negate then ;",
-    ": min     2dup < if drop else swap drop then ;",
-    ": max     2dup < if swap drop else drop then ;",
-    ": ?       @ . ;",
-    ": +!      dup @ rot + swap ! ;",
+    "variable  last-key", 
+  ], (output) => {
+    console.log("ReadLines completed", { output });
+    next();
+  });
 
-    "variable  graphics", // start of graphics memory
-    "575 cells allot", // graphics memory takes 24 * 24 = 576 cells altogether
-    "variable  last-key", // create last-key variable for keyboard input
-  ], next);
+  console.log("Called readLines");
 }
 
 /*
@@ -15070,22 +15084,159 @@ function setupHydraWords(addToDictionary, { hydra, synth }) {
 
 class Aww {
   constructor(next, hydraInstance) {
+    if (!(this instanceof Aww)) {
+      console.warn("Aww called without new");
+      return new Aww(next, hydraInstance);
+    }
+
+    console.log("Aww constructor started", { next, hydraInstance });
+    
+    if (typeof next !== 'function') {
+      console.error("Invalid next callback provided:", next);
+      throw new Error("Aww constructor requires a callback function as first argument");
+    }
+
     // Core structures
     var context = {
       stack: Stack("Argument Stack"),
       returnStack: Stack("Return Stack"),
       dictionary: Dictionary(),
       memory: Memory(),
-      // This is set when the interpreter is waiting for a key to be pressed or sleeping
       pause: false,
-      // This is set within readLine as a callback to continue processing tokens
-      // once a key has been pressed or sleep has finished
       onContinue: null,
-      // Add array to store valid tokens
       parsedTokens: [],
       logger: createLogger(LogLevel.TRACE),
     };
 
+    console.log("Context initialized");
+
+    // Create API object
+    const api = {
+      readLine: null,
+      readLines: null,
+      keydown: null,
+      getStack: () => context.stack.print(),
+      getContext: () => context,
+      getDictionary: () => context.dictionary.print(),
+      getMemory: () => context.memory.print(),
+      getParsedTokens: () => context.parsedTokens,
+      clearParsedTokens: () => { context.parsedTokens = []; },
+      setMemoryHandler: (cb) => {
+        context.onMemoryChange = (address, value) => {
+          cb(address, value, context.memory.getVariable("graphics"));
+        };
+      },
+      setLogLevel: (level) => context.logger.setLevel(level),
+      getLogs: (level) => context.logger.getLogs(level),
+      clearLogs: () => context.logger.clearLogs(),
+      onLog: (callback) => context.logger.setLogCallback(callback),
+    };
+
+    console.log("API object created");
+
+    // Define readLine and readLines
+    function readLine(line, outputCallback, next) {
+      console.log("readLine called", { line, outputCallback, next });
+      context.logger.info("Input", `Processing line: ${line}`);
+      if (!next) {
+        next = outputCallback;
+        outputCallback = null;
+      }
+      context.addOutput = outputCallback || function () {};
+      var tokenizer = Tokenizer(line);
+      context.parsedTokens = [];
+
+      // processNextToken recursively executes tokens
+      function processNextToken() {
+        var nextToken = tokenizer.nextToken();
+
+        if (!nextToken) {
+          context.logger.debug("Runtime", `No token (last token)`);
+          if (!currentDefinition) {
+            // don't append output while definition is in progress
+            context.logger.debug(
+              "Runtime",
+              `No token (last token), no ongoing definition, append output`
+            );
+            context.addOutput(" ok");
+          }
+          next();
+          return;
+        }
+
+        context.logger.trace(
+          "Runtime",
+          `Processing Next token: ${JSON.stringify(nextToken)}`
+        );
+
+       
+        var action = tokenToAction(nextToken);
+
+        if (currentDefinition) {
+          // Are we currently defining a definition?
+          addActionToCurrentDefinition(action);
+          processTokens();
+        } else {
+          executeRuntimeAction(tokenizer, action, function (output) {
+            context.addOutput(output);
+
+            if (context.pause) {
+              context.onContinue = processTokens;
+            } else {
+              processTokens();
+            }
+          });
+        }
+      }
+
+      function processTokens() {
+        context.logger.trace("Runtime", `Processing tokens`);
+        try {
+          processNextToken();
+        } catch (e) {
+          currentDefinition = null;
+          context.addOutput(" " + e.message);
+          context.logger.error(
+            "Runtime",
+            `Error processing tokens: ${e.message}`
+          );
+          next();
+        }
+      }
+
+      processTokens();
+    }
+
+    function readLines(codeLines, callbacks, next) {
+      console.log("readLines called", { codeLines, callbacks, next });
+
+      if (callbacks && !next) {
+        console.log("Adjusting callbacks/next");
+        next = callbacks;
+        callbacks = null;
+      }
+    
+      if (codeLines.length == 0) {
+        console.log("No more lines, calling next");
+        next();
+        return;
+      }
+    
+      var codeLine = codeLines[0];
+      console.log("Processing line:", codeLine);
+    
+      callbacks && callbacks.lineCallback(codeLine);
+      readLine(codeLine, callbacks && callbacks.outputCallback, function () {
+        console.log("Line processed, continuing with rest");
+        readLines(codeLines.slice(1), callbacks, next);
+      });
+    }
+
+    // Set the API functions
+    api.readLine = readLine;
+    api.readLines = readLines;
+
+    
     // This variable is shared across multiple calls to readLine,
     // as definitions can span multiple lines
     var currentDefinition = null;
@@ -15122,92 +15273,6 @@ class Aww {
         `Token: ${JSON.stringify(token)} -> null`
       );
       return null;
-    }
-
-    class AwwWord {
-      constructor({
-        name,
-        prefix = null,
-        implementation,
-        isControlCode = false,
-        code = null,
-      }) {
-        this.name = name;
-        this.prefix = prefix;
-        this._implementation = implementation;
-        this.isControlCode = isControlCode;
-        this.code = code;
-      }
-
-      execute(context, next) {
-        if (this.isControlCode) {
-          return { code: this.code };
-        }
-
-        // Handle both direct function calls and functions with next callback
-        const result = this._implementation(context, next);
-        if (next && this._implementation.length < 2) {
-          next(result);
-        }
-        return result;
-      }
-
-      toString() {
-        debugger;
-        if (this.isControlCode) {
-          return `[Control: ${this.code}]`;
-        }
-
-        const prefixStr = this.prefix ? `${this.prefix} ` : "";
-        if (!this._implementation) {
-          console.warn(`No implementation for word: ${this.name}`);
-          return `${prefixStr}${this.name}`;
-        }
-
-        const funcStr = this._implementation
-          ?.toString()
-          .replace(/^\s*function\s*\([^)]*\)\s*{\s*([\s\S]*?)\s*}\s*$/, "$1") // Extract function body
-          .trim()
-          .split("\n")
-          .map((line) => line.trim())
-          .join(" ");
-
-        return `${prefixStr}${this.name} ( ${funcStr} )`;
-      }
-
-      get _name() {
-        return this.prefix ? `${this.prefix} ${this.name}` : this.name;
-      }
-      get _token() {
-        return this.name;
-      }
-      get _prefix() {
-        return this.prefix;
-      }
-    }
-
-    // Update namedFunction to use AwwWord
-    function namedFunction(name, prefix, func) {
-      context.logger.trace(
-        "namedFunction",
-        `Creating named function: ${name}`,
-        { prefix }
-      );
-      return new AwwWord({
-        name,
-        prefix,
-        implementation: func,
-      });
-    }
-
-    // Add helper for control codes
-    function controlCode(code) {
-      return new AwwWord({
-        name: code,
-        isControlCode: true,
-        code,
-        implementation: () => ({ code }),
-      });
     }
 
     // Programmatic definition of words
@@ -15368,232 +15433,115 @@ class Aww {
       }
     }
 
-    // Read a line of input. Callback is called with output for this line.
-    function readLine(line, outputCallback, next) {
-      context.logger.info("Input", `Processing line: ${line}`);
-      if (!next) {
-        next = outputCallback;
-        outputCallback = null;
-      }
-      context.addOutput = outputCallback || function () {};
-      var tokenizer = Tokenizer(line);
-      context.parsedTokens = [];
+    console.log("Starting predefined words initialization");
 
-      // processNextToken recursively executes tokens
-      function processNextToken() {
-        var nextToken = tokenizer.nextToken();
-
-        if (!nextToken) {
-          context.logger.debug("Runtime", `No token (last token)`);
-          if (!currentDefinition) {
-            // don't append output while definition is in progress
-            context.logger.debug(
-              "Runtime",
-              `No token (last token), no ongoing definition, append output`
-            );
-            context.addOutput(" ok");
-          }
-          next();
-          return;
-        }
-
-        context.logger.trace(
-          "Runtime",
-          `Processing Next token: ${JSON.stringify(nextToken)}`
-        );
-
-        // const peekAction = tokenToAction(token);
-        // const peekNextToken = tokenizer.peekToken(1);
-        // const peekNextToken2 = tokenizer.peekToken(2);
-
-        // context.logger.trace('Runtime', `Peek Next Token: ${JSON.stringify(peekNextToken)}, Peek Next Next Token: ${JSON.stringify(peekNextToken2)}`);
-
-        // if (peekNextToken2 && peekAction?.code === '~' && isCapitalized(peekNextToken?.value) && tokenToAction(peekNextToken2)?.code  === 'is') {
-        //   context.logger.trace('Runtime', `Handling permanent definition: ${token.value} ${peekNextToken.value} ${peekNextToken2.value}`);
-        //   handlePermanentDefinition();
-        // } else if (peekNextToken && isCapitalized(token.value) && tokenToAction(peekNextToken)?.code === 'is') {
-        //   context.logger.trace('Runtime', `Handling non-permanent definition: ${token.value} ${peekAction2.value}`);
-        //   handleDefinitionTypeIS(false);
-        //   return processTokens()
-        // } else if (peekAction?.code === ':') {
-        //   tokenizer.nextToken(); // consume ':'
-        //   context.logger.trace('Runtime', `Handling colon definition: ${token.value}`);
-        //   var word = tokenizer.nextToken().value;
-        //   context.parsedTokens.push(word);
-        //   startDefinition(word);
-        //   return processTokens();
-        // } else if (currentDefinition) {
-        //   context.logger.trace('Runtime', `Handling current definition: ${token.value}`);
-        //   var action = tokenToAction(tokenizer.nextToken());
-        //   addActionToCurrentDefinition(action);
-        //   return processTokens();
-        // } else {
-        //   context.logger.trace('Runtime', `Handling default runtime action: ${token.value}`);
-        //   var action = tokenToAction(tokenizer.nextToken());
-        //   executeRuntimeAction(tokenizer, action, function (output) {
-        //     context.logger.info('Runtime', `Handling output: ${output}`);
-        //     context.addOutput(output);
-        //     if (context.pause) {
-        //       context.onContinue = processTokens;
-        //     } else {
-        //       return processTokens();
-        //     }
-        //   });
-        // }
-
-        var action = tokenToAction(nextToken);
-
-        if (currentDefinition) {
-          // Are we currently defining a definition?
-          addActionToCurrentDefinition(action);
-          processTokens();
-        } else {
-          executeRuntimeAction(tokenizer, action, function (output) {
-            context.addOutput(output);
-
-            if (context.pause) {
-              context.onContinue = processTokens;
-            } else {
-              processTokens();
-            }
-          });
-        }
-      }
-
-      // function isCapitalized(word) {
-      //   return word && word[0] === word[0].toUpperCase();
-      // }
-
-      // function handlePermanentDefinition() {
-      //   tokenizer.nextToken(); // consume '~'
-      //   handleDefinitionTypeIS(true);
-      // }
-
-      // function handleDefinitionTypeIS(isPermanent) {
-      //   var word = tokenizer.nextToken().value;
-      //   context.parsedTokens.push(word)
-      //   const definitionWord = tokenizer.nextToken().value;
-      //   context.parsedTokens.push(definitionWord)
-
-      //   context.logger.debug('Compiler', `Handling definition type IS: ${word} ${definitionWord} ->`);
-
-      //   if (tokenToAction(tokenizer.peekToken())?.code === 'now') {
-      //     tokenizer.nextToken(); // consume 'now'
-      //     var newDefinition = tokenToAction(tokenizer.nextToken());
-      //     context.dictionary.redefine(word, newDefinition, isPermanent);
-      //   } else  {
-      //     startDefinition(word, isPermanent);
-      //   }
-
-      //   processTokens(); // Changed from processTokens() to processNextToken()
-      // }
-
-      // function handleOutput(output) {
-      //   context.logger.info('Runtime', `Handling output: ${output}`);
-      //   context.addOutput(output);
-      //   if (context.pause) {
-      //     context.onContinue = processTokens;
-      //   } else {
-      //     processTokens();
-      //   }
-      // }
-
-      function processTokens() {
-        context.logger.trace("Runtime", `Processing tokens`);
-        try {
-          processNextToken();
-        } catch (e) {
-          currentDefinition = null;
-          context.addOutput(" " + e.message);
-          context.logger.error(
-            "Runtime",
-            `Error processing tokens: ${e.message}`
-          );
-          next();
-        }
-      }
-
-      processTokens();
-    }
-
-    function readLines(codeLines, callbacks, next) {
-      if (callbacks && !next) {
-        next = callbacks;
-        callbacks = null;
-      }
-
-      if (codeLines.length == 0) {
-        next();
-        return;
-      }
-
-      var codeLine = codeLines[0];
-
-      callbacks && callbacks.lineCallback(codeLine);
-      readLine(codeLine, callbacks && callbacks.outputCallback, function () {
-        readLines(codeLines.slice(1), callbacks, next);
-      });
-    }
-
-    addPredefinedWords(addToDictionary, readLines, function () {
-      // Set up hydra words if instance provided
+    
+    addPredefinedWords(addToDictionary, readLines, () => {
+      console.log("Predefined words callback triggered");
+      
       if (typeof window !== "undefined" && hydraInstance) {
+        console.log("Setting up Hydra words");
         setupHydraWords(addToDictionary, hydraInstance);
       }
 
-      next({
-        readLine: readLine,
-        readLines: readLines,
-        keydown: function (keyCode) {
-          context.logger.debug("Input", `Keydown event: ${keyCode}`);
-          context.memory.setValue(
-            context.memory.getVariable("last-key"),
-            keyCode
-          );
-          context.keydown && context.keydown(keyCode);
-        },
-        getStack: function () {
-          return context.stack.print();
-        },
-        getContext: function () {
-          return context;
-        },
-        getDictionary: function () {
-          return context.dictionary.print();
-        },
-        getMemory: function () {
-          return context.memory.print();
-        },
-        // Add new getter for parsed tokens
-        getParsedTokens: function () {
-          return context.parsedTokens;
-        },
-        // Clear parsed tokens at start of new line
-        clearParsedTokens: function () {
-          context.parsedTokens = [];
-        },
-        setMemoryHandler: function (cb) {
-          context.onMemoryChange = function (address, value) {
-            cb(address, value, context.memory.getVariable("graphics"));
-          };
-        },
-        // Add logger controls
-        setLogLevel: function (level) {
-          context.logger.setLevel(level);
-        },
-        getLogs: function (level) {
-          return context.logger.getLogs(level);
-        },
-        clearLogs: function () {
-          context.logger.clearLogs();
-        },
-        // Add callback setter for logs
-        onLog: function (callback) {
-          context.logger.setLogCallback(callback);
-        },
-      });
+      console.log("About to call next callback with API");
+      try {
+        next(api);
+      } catch (e) {
+        console.error("Error in next callback:", e);
+      }
+      console.log("Next callback completed");
     });
+
+    console.log("Aww constructor completed");
   }
+}
+
+
+class AwwWord {
+  constructor({
+    name,
+    prefix = null,
+    implementation,
+    isControlCode = false,
+    code = null,
+  }) {
+    this.name = name;
+    this.prefix = prefix;
+    this._implementation = implementation;
+    this.isControlCode = isControlCode;
+    this.code = code;
+  }
+
+  execute(context, next) {
+    if (this.isControlCode) {
+      return { code: this.code };
+    }
+
+    // Handle both direct function calls and functions with next callback
+    const result = this._implementation(context, next);
+    if (next && this._implementation.length < 2) {
+      next(result);
+    }
+    return result;
+  }
+
+  toString() {
+    debugger;
+    if (this.isControlCode) {
+      return `[Control: ${this.code}]`;
+    }
+
+    const prefixStr = this.prefix ? `${this.prefix} ` : "";
+    if (!this._implementation) {
+      console.warn(`No implementation for word: ${this.name}`);
+      return `${prefixStr}${this.name}`;
+    }
+
+    const funcStr = this._implementation
+      ?.toString()
+      .replace(/^\s*function\s*\([^)]*\)\s*{\s*([\s\S]*?)\s*}\s*$/, "$1") // Extract function body
+      .trim()
+      .split("\n")
+      .map((line) => line.trim())
+      .join(" ");
+
+    return `${prefixStr}${this.name} ( ${funcStr} )`;
+  }
+
+  get _name() {
+    return this.prefix ? `${this.prefix} ${this.name}` : this.name;
+  }
+  get _token() {
+    return this.name;
+  }
+  get _prefix() {
+    return this.prefix;
+  }
+}
+
+// Update namedFunction to use AwwWord
+function namedFunction(name, prefix, func) {
+  context.logger.trace(
+    "namedFunction",
+    `Creating named function: ${name}`,
+    { prefix }
+  );
+  return new AwwWord({
+    name,
+    prefix,
+    implementation: func,
+  });
+}
+
+// Add helper for control codes
+function controlCode(code) {
+  return new AwwWord({
+    name: code,
+    isControlCode: true,
+    code,
+    implementation: () => ({ code }),
+  });
 }
 
 exports.Aww = Aww;

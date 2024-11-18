@@ -23,11 +23,10 @@ class ReplModal {
 
     this.awwApi = null;
 
-    console.log('ReplModal constructor');
-
-    new Aww((api) => this.awwApi = api, hydraInstance);
-
-    this.setupEventListeners();
+    new Aww((api) => {
+      this.awwApi = api;
+      this.setupEventListeners();
+    }, hydraInstance);
   }
 
   addLine(code) {
@@ -59,10 +58,12 @@ class ReplModal {
   }
 
   updateStack() {
+    if (!this.awwApi) return;
     this.stackViewer.textContent = this.awwApi.getStack() || '';
   }
 
   updateDictionary() {
+    if (!this.awwApi) return;
     this.dictionary = [...this.awwApi.getDictionary().resolvedDict.keys()];
   }
 
@@ -118,6 +119,7 @@ class ReplModal {
   }
 
   readInput() {
+    if (!this.awwApi) return;
     const code = this.input.value;
     const codeLines = code.split('\n');
 
@@ -169,6 +171,11 @@ class ReplModal {
   }
 
   setupEventListeners() {
+    if (!this.awwApi) {
+      console.error('Aww API not initialized');
+      return;
+    }
+
     this.input.addEventListener('keydown', (e) => {
       if (this.inputHidden) {
         this.awwApi.keyDown(e.input.value);
@@ -212,17 +219,8 @@ class ReplModal {
 
     this.updateStack();
     this.updateDictionary();
-
-    // If input is pre-filled, run it on-load
-    if (this.input.value) {
-      this.readInput();
-    }
   }
 }
 
-// Initialize the REPL when the modal is ready
-// document.addEventListener('DOMContentLoaded', () => {
-//   new ReplModal();
-// });
 
 module.exports = ReplModal;

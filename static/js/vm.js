@@ -11,6 +11,8 @@ const stage = Stage.getInstance();
 
 let awwApi = null;
 
+let attachListeners = false;
+
 
 const lastOutput = signal([]);
 const lastStack = signal([]);
@@ -24,6 +26,8 @@ const awwHistory = signal([]);
 const lineBuffer = signal([]);
 
 (async () => {
+  // console.log('Waiting for 5 seconds before loading vm');
+  // await new Promise((resolve) => setTimeout(resolve, 5000));
   const canvas = await stage.hydraCanvas();
   await stage.show();
 
@@ -37,10 +41,20 @@ const lineBuffer = signal([]);
     makeGlobal: true,
     canvas,
   });
-  new Aww((api) => awwApi = api, hydraInstance);
+  new Aww((api) => {
+    awwApi = api;
+    attachListeners();
+  }, hydraInstance);
 
   new ReplModal(hydraInstance);
+})();
 
+// effect(() => {
+//   console.log('Last output:', lastOutput.value.join(' '));
+// });
+
+attachListeners = () => {
+  if (!awwApi) return;
   awwApi.onLog((log) => {
     logs.value.push(log);
 
@@ -48,11 +62,7 @@ const lineBuffer = signal([]);
     const formattedLog = `[${log.level}] ${log.timestamp}<br>${log.category}: ${log.message}`;
     logsContainer.prepend(`<p class="awwtysmLog ${log.level}">${formattedLog}</p>`);
   });
-})();
-
-effect(() => {
-  console.log('Last output:', lastOutput.value.join(' '));
-});
+};
 
 
 effect(() => {
@@ -225,18 +235,23 @@ const saveToHistory = (entry) => {
 // });
 
 const updateDictionary = () => {
+  if (!awwApi) return;
   currentDictionary.value = awwApi.getDictionary();
 };
 const updateStack = () => {
+  if (!awwApi) return;
   lastStack.value = awwApi.getStack();
 };
 const updateParsedTokens = () => {
+  if (!awwApi) return;
   parsedTokens.value = awwApi.getParsedTokens();
 };
 const updateLogs = () => {
+  if (!awwApi) return;
   logs.value = awwApi.getLogs();
 };
 const updateMemory = () => {
+  if (!awwApi) return;
   memory.value = awwApi.getMemory();
 };
 
@@ -257,8 +272,12 @@ const vm = () => ({
     lastLine.value = line;
     lastOutput.value = [];
 
+    console.log('Readline:', line);
+
+    console.log('awwApi:', awwApi);
+
     // Use the existing awwApi instance
-    context.value = awwApi;
+    // context.value = awwApi;
 
     let $line;
 
@@ -291,7 +310,7 @@ const vm = () => ({
     });
     return lastOutput.value;
   },
-  aww: awwApi,
+  // aww: awwApi,
   lastOutput,
   lastStack,
   lastLine,
