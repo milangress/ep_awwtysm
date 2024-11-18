@@ -3,9 +3,7 @@
 # aww interpreter
 
 An Etherpad Plugin to run the aww interpreter inside of etherpad.
-developed for livecoding and performances
-
-super wip
+Im using it for livecoding and performances. Super WIP and chaotic. Use at your own risk.
 
 # How to use
 
