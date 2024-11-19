@@ -156,12 +156,12 @@ class EditorLine {
       console.error('Error executing line:', e);
       error = e;
     }
-    this.$parsedTokens.value = vm().parsedTokens.value;
+    this.$parsedTokens.value = result[0].parsedTokens;
 
     if (result) {
       this.$result.value = result;
     }
-    this.$result.value += ` ${vm().lastStack.value}`;
+    this.$result.value += ` ${result[0].stack}`;
 
 
     if (error) {

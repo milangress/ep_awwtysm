@@ -1,7 +1,7 @@
 'use strict';
 
 const {signal, effect} = require('@preact/signals-core');
-const {AwwVM} = require('./lib/AwwVM');
+const {AwwVM, HydraDevice, createHydra} = require('./lib/AwwVM');
 const ReplModal = require('./ReplModal');
 
 const Stage = require('./Stage');
@@ -29,20 +29,6 @@ let awwInstance = null;
   try {
     console.log('Starting VM initialization');
 
-    const canvas = await stage.hydraCanvas();
-    await stage.show();
-
-    const size = canvas.getBoundingClientRect();
-    console.log('Size:', size);
-
-    // const hydraInstance = createHydra({
-    //   width: size.width,
-    //   height: size.height,
-    //   makeGlobal: true,
-    //   canvas,
-    // });
-
-    console.log('Hydra instance created');
 
     // Create main Aww instance
     console.log('Creating main Aww instance');
@@ -77,8 +63,32 @@ let awwInstance = null;
         console.log('Devices:', devices);
         getDeviceOverviewAsci = awwInstance.getDeviceOverviewAsci();
       });
+
       resolve();
     });
+
+    const canvas = await stage.hydraCanvas();
+    await stage.show();
+
+    const size = canvas.getBoundingClientRect();
+    console.log('Size:', size);
+
+    console.log('Creating hydra instance', createHydra);
+    const hydraInstance = createHydra({
+      width: size.width,
+      height: size.height,
+      canvas,
+    });
+    console.log('Hydra instance created', hydraInstance);
+    const hydraDevice = new HydraDevice(hydraInstance);
+    console.log('Hydra device created', hydraDevice);
+
+    console.log('Hydra instance created');
+    console.log('Attaching hydra device');
+    window.setTimeout(() => {
+      awwInstance.attachDevice(hydraDevice);
+      console.log('Hydra device attached');
+    }, 5000);
 
     await new Promise((resolve) => {
       // Create REPL instance
@@ -348,7 +358,7 @@ const vm = () => ({
 
     // Update signals after processing all lines
 
-    return lastOutput.value;
+    return results;
   },
   lastOutput,
   lastStack,
