@@ -1,19 +1,16 @@
 // replModal.ejs is standalone Repl for testing.
 'use strict';
+const {AwwVM} = require('./lib/AwwVM');
+
 
 class ReplModal {
-  constructor(hydraInstance, AwwClass, id = 'awwtysmReplModal') {
+  constructor({devices}, id = 'awwtysmReplModal') {
+    console.log('AwwVM', AwwVM);
     console.log('ReplModal constructor started', {
-      hydraInstance: !!hydraInstance,
-      AwwClass: !!AwwClass,
+      devices,
       id,
     });
-    if (!AwwClass) {
-      throw new Error('AwwClass is required');
-    }
-    if (!hydraInstance) {
-      throw new Error('hydraInstance is required');
-    }
+
     if (!document.getElementById(id)) {
       throw new Error(`Element with id ${id} not found`);
     }
@@ -39,17 +36,25 @@ class ReplModal {
     // Initialize state
     this.initializeState();
 
+    // Create new AwwVM instance directly
     console.log('Creating new Aww instance for REPL');
-    new AwwClass((api) => {
-      console.log('REPL Aww callback received');
-      if (!api) {
-        console.error('No API received in REPL callback');
-        return;
-      }
-      this.awwApi = api;
-      console.log('Setting up REPL event listeners');
-      this.setupEventListeners();
-    }, hydraInstance);
+    this.awwApi = new AwwVM();
+
+    console.log('AwwVM instance created', this.awwApi);
+
+    // Set up subscriptions to AwwVM signals
+    this.awwApi.getStackSignal().subscribe((stack) => {
+      console.log('Stack signal received', stack);
+      this.stack.current = stack;
+    });
+
+    this.awwApi.getDictionarySignal().subscribe((dict) => {
+      console.log('Dictionary signal received', dict);
+      this.dictionary = [...dict.resolvedDictSignal.value.keys()];
+    });
+
+    // Set up event listeners
+    this.setupEventListeners();
 
     console.log('ReplModal constructor completed');
   }
@@ -107,15 +112,15 @@ class ReplModal {
     this.adjustScroll();
   }
 
-  updateStack() {
-    if (!this.awwApi) return;
-    this.stackViewer.textContent = this.awwApi.getStack() || '';
-  }
+  // updateStack() {
+  //   if (!this.awwApi) return;
+  //   this.stackViewer.textContent = this.awwApi.stack.value || '';
+  // }
 
-  updateDictionary() {
-    if (!this.awwApi) return;
-    this.dictionary = [...this.awwApi.getDictionary().resolvedDict.keys()];
-  }
+  // updateDictionary() {
+  //   if (!this.awwApi) return;
+  //   this.dictionary = [...this.awwApi.getDictionary().resolvedDict.keys()];
+  // }
 
   autocompleteAcceptMatch(newString) {
     const words = this.input.value.split(' ');
@@ -169,7 +174,6 @@ class ReplModal {
   }
 
   readInput() {
-    if (!this.awwApi) return;
     const code = this.input.value;
     const codeLines = code.split('\n');
 
@@ -177,20 +181,15 @@ class ReplModal {
 
     this.hideInput();
 
-    // Handle multiple lines - this will only come up when text is pasted.
-    this.awwApi.readLines(codeLines, {
-      lineCallback: (codeLine) => {
-        $line = this.addLine(codeLine);
-      },
-      outputCallback: (output) => {
-        this.addOutput($line, output);
-      },
-    }, () => {
-      this.updateStack();
-      this.showInput();
-      this.updateDictionary();
+    // Process each line using the new API
+    const results = this.awwApi.readLines(codeLines);
+
+    results.forEach((result, index) => {
+      $line = this.addLine(codeLines[index]);
+      this.addOutput($line, result.output);
     });
 
+    this.showInput();
     this.input.value = '';
   }
 
@@ -267,9 +266,6 @@ class ReplModal {
         this.autocomplete.innerHTML = '';
       }
     });
-
-    this.updateStack();
-    this.updateDictionary();
   }
 }
 
