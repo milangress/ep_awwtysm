@@ -1,5 +1,6 @@
 // replModal.ejs is standalone Repl for testing.
 'use strict';
+const {signal} = require('@preact/signals-core');
 const {AwwVM} = require('./lib/AwwVM');
 
 
@@ -23,8 +24,8 @@ class ReplModal {
 
     this.lineBuffer = ['']; // Start line buffer with blank line
     this.selectedLine = null;
-    this.stack = {current: ''};
-    this.dictionary = null;
+    this.stack = signal('');
+    this.dictionary = signal(null);
     this.inputHidden = false;
     this.firstAutocompleteChoice = '';
 
@@ -34,7 +35,7 @@ class ReplModal {
     this.initializeDOMElements();
 
     // Initialize state
-    this.initializeState();
+    // this.initializeState();
 
     // Create new AwwVM instance directly
     console.log('Creating new Aww instance for REPL');
@@ -43,15 +44,15 @@ class ReplModal {
     console.log('AwwVM instance created', this.awwApi);
 
     // Set up subscriptions to AwwVM signals
-    this.awwApi.getStackSignal().subscribe((stack) => {
-      console.log('Stack signal received', stack);
-      this.stack.current = stack;
-    });
+    // this.awwApi.getStackPrintSignal().subscribe((stack) => {
+    //   console.log('Stack signal received', stack);
+    //   this.stack.current = stack;
+    // });
 
-    this.awwApi.getDictionarySignal().subscribe((dict) => {
-      console.log('Dictionary signal received', dict);
-      this.dictionary = [...dict.resolvedDictSignal.value.keys()];
-    });
+    // this.awwApi.getDictionarySignal().subscribe((dict) => {
+    //   console.log('Dictionary signal received', dict);
+    //   this.dictionary = [...dict.resolvedDictSignal.value.keys()];
+    // });
 
     // Set up event listeners
     this.setupEventListeners();
@@ -73,15 +74,15 @@ class ReplModal {
     }
   }
 
-  initializeState() {
-    this.lineBuffer = [''];
-    this.selectedLine = null;
-    this.stack = {current: ''};
-    this.dictionary = null;
-    this.inputHidden = false;
-    this.firstAutocompleteChoice = '';
-    this.awwApi = null;
-  }
+  // initializeState() {
+  //   this.lineBuffer = [''];
+  //   this.selectedLine = null;
+  //   this.stack = {current: ''};
+  //   this.dictionary = null;
+  //   this.inputHidden = false;
+  //   this.firstAutocompleteChoice = '';
+  //   this.awwApi = null;
+  // }
 
 
   addLine(code) {
@@ -117,10 +118,12 @@ class ReplModal {
   //   this.stackViewer.textContent = this.awwApi.stack.value || '';
   // }
 
-  // updateDictionary() {
-  //   if (!this.awwApi) return;
-  //   this.dictionary = [...this.awwApi.getDictionary().resolvedDict.keys()];
-  // }
+  updateDictionary() {
+    if (!this.awwApi) return;
+    this.dictionary.value = [
+      ...this.awwApi.getDictionarySignal().value.resolvedDictSignal.value.keys(),
+    ];
+  }
 
   autocompleteAcceptMatch(newString) {
     const words = this.input.value.split(' ');
@@ -131,7 +134,9 @@ class ReplModal {
   }
 
   updateAutocomplete() {
-    if (!this.dictionary) return this.updateDictionary();
+    if (!this.dictionary.value || this.dictionary.value.length === 0) {
+      return this.updateDictionary();
+    }
 
     const inputValue = this.input.value;
     const lastWord = inputValue.split(' ').pop(); // Get the last word being typed
@@ -142,23 +147,25 @@ class ReplModal {
     // Only show suggestions if we have a partial word
     if (lastWord.length > 0) {
       // Filter dictionary for matching entries (case-insensitive)
-      const matches = this.dictionary
-          .filter((word) => word.toLowerCase().startsWith(lastWord.toLowerCase()))
-          .slice(0, 8); // Limit to top 8 matches
+      if (this.dictionary.value && this.dictionary.value.length > 0) {
+        const matches = this.dictionary.value
+            .filter((word) => word.toLowerCase().startsWith(lastWord.toLowerCase()))
+            .slice(0, 8); // Limit to top 8 matches
 
-      if (matches.length > 0) {
-        matches.forEach((match, index) => {
-          if (index === 0) {
-            this.firstAutocompleteChoice = match;
-          }
-          const suggestion = document.createElement('span');
-          suggestion.classList.add('suggestion');
-          suggestion.textContent = match;
-          suggestion.addEventListener('click', () => {
-            this.autocompleteAcceptMatch(match);
+        if (matches.length > 0) {
+          matches.forEach((match, index) => {
+            if (index === 0) {
+              this.firstAutocompleteChoice = match;
+            }
+            const suggestion = document.createElement('span');
+            suggestion.classList.add('suggestion');
+            suggestion.textContent = match;
+            suggestion.addEventListener('click', () => {
+              this.autocompleteAcceptMatch(match);
+            });
+            this.autocomplete.appendChild(suggestion);
           });
-          this.autocomplete.appendChild(suggestion);
-        });
+        }
       }
     }
   }
@@ -185,8 +192,12 @@ class ReplModal {
     const results = this.awwApi.readLines(codeLines);
 
     results.forEach((result, index) => {
+      console.log('Result', result);
       $line = this.addLine(codeLines[index]);
       this.addOutput($line, result.output);
+      this.stack.value = result.stack;
+      this.stackViewer.textContent = this.stack.value;
+      this.dictionary.value = result.dictionary.resolvedDictSignal.value;
     });
 
     this.showInput();

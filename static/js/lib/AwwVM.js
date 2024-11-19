@@ -1540,6 +1540,9 @@ class AwwVM {
   getLogsSignal() {
     return this.logs;
   }
+  getStackPrintSignal() {
+    return this.stack.value.printSignal;
+  }
 
   getLogger() {
     return this.logger;
