@@ -9,8 +9,6 @@ const stage = Stage.getInstance();
 
 let awwApi = null;
 
-let attachListeners = false;
-
 const lastOutput = signal([]);
 const lastStack = signal([]);
 const lastLine = signal(null);
@@ -24,24 +22,15 @@ const lineBuffer = signal([]);
 
 // const repl = null;
 
-attachListeners = () => {
-  if (!awwApi) {
-    console.error('attachListeners called without awwApi');
-    return;
-  }
-  console.log('Attaching listeners');
 
-  awwApi.onLog((log) => {
-    logs.value.push(log);
-
-    const logsContainer = $('#awwtysmLogsList');
-    const formattedLog = `[${log.level}] ${log.timestamp}<br>${log.category}: ${log.message}`;
-    logsContainer.prepend(
-        `<p class="awwtysmLog ${log.level}">${formattedLog}</p>`
-    );
-  });
-
-  console.log('Listeners attached');
+const handleLogs = (newLogs) => {
+  logs.value.push(newLogs);
+  const logsContainer = $('#awwtysmLogsList');
+  const formattedLog = `[${newLogs.level}] ${newLogs.timestamp}<br>` +
+            `${newLogs.category}: ${newLogs.message}`;
+  logsContainer.prepend(
+      `<p class="awwtysmLog ${newLogs.level}">${formattedLog}</p>`
+  );
 };
 
 (async () => {
@@ -66,18 +55,16 @@ attachListeners = () => {
     // Create main Aww instance
     console.log('Creating main Aww instance');
     await new Promise((resolve) => {
-      const hydraInstance = { /* initialize your hydra instance here if needed */ };
-      const awwInstance = new AwwVM(hydraInstance);
-      awwApi = {
-        readLine: awwInstance.readLine.bind(awwInstance),
+      const awwInstance = new AwwVM();
+      awwApi = {readLine: awwInstance.readLine.bind(awwInstance),
         readLines: awwInstance.readLines.bind(awwInstance),
         getDictionary: () => awwInstance.dictionary.value,
         getStack: () => awwInstance.stack.value,
         getParsedTokens: () => awwInstance.parsedTokens.value,
         getLogs: () => awwInstance.logs.value,
         getMemory: () => awwInstance.memory.value,
-      };
-      attachListeners();
+        logsSignalSubscriber: () => awwInstance.getLogsSignal().subscribe(handleLogs)};
+
       resolve();
     });
 
@@ -107,6 +94,7 @@ effect(() => {
   lastLineContainer.empty();
   lastLineContainer.append(`<p>${lastLine.value}</p>`);
 });
+
 
 const detailsHelper = (detailsContent, summaryContent) => {
   const detailsElement = document.createElement('details');

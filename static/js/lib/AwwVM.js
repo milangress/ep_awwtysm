@@ -1279,13 +1279,13 @@ class AwwVM {
     if (token.isStringLiteral) {
       return this.createWord(word, "String", (context) => {
         context.stack.push(word);
-      });
+      }, "value", { source: "userInput" });
     } else if (definition !== null) {
       return definition;
     } else if (isFinite(word)) {
       return this.createWord(word, "Number", (context) => {
         context.stack.push(+word);
-      });
+      }, "value", { source: "userInput" });
     }
 
     this.logger.trace(
@@ -1413,7 +1413,7 @@ class AwwVM {
     }
   }
 
-  createWord(name, prefix, func) {
+  createWord(name, prefix, func, type = "word", _meta = {}) {
     this.logger.trace("namedFunction", `Creating named function: ${name}`, {
       prefix,
     });
@@ -1422,15 +1422,16 @@ class AwwVM {
       name,
       prefix,
       implementation: func,
+      type,
+      _meta,
     });
   }
 
   controlCode(code) {
     return new AwwWord({
       name: code,
-      isControlCode: true,
-      code,
-      implementation: () => ({ code }),
+      type: "control",
+      _meta: { code },
     });
   }
 
@@ -1441,54 +1442,112 @@ class AwwVM {
   detachDevice(namespace) {
     this.deviceManager.unregisterDevice(namespace);
   }
+  
+  /**
+   * Returns a signal that can be subscribed to for log updates
+   * @returns {Signal} A signal containing the logs array
+   * @example
+   * ```js
+   * const vm = new AwwVM();
+   * vm.getLogsSignal().subscribe((newLogs) => {
+   *   console.log('Logs updated:', newLogs);
+   * });
+   * ```
+   */
+  getLogsSignal() {
+    return this.logs;
+  }
+
+  getStackSignal() {
+    return this.stack;
+  }
+
+  getParsedTokensSignal() {
+    return this.parsedTokens;
+  }
+
+  getMemorySignal() {
+    return this.memory;
+  }
+
+  getDictionarySignal() {
+    return this.dictionary;
+  }
+
+  getOutputSignal() {
+    return this.output;
+  }
+
+  getPausedSignal() {
+    return this.paused;
+  }
+
+  getCurrentDefinitionSignal() {
+    return this.currentDefinition;
+  }
+
+  getDeviceManagerSignal() {
+    return this.deviceManager;
+  }
 }
 
+/**
+ * Represents a word in the Forth-like language
+ * @class
+ */
 class AwwWord {
+  /**
+   * Creates a new AwwWord instance
+   * @param {Object} params - The word parameters
+   * @param {string} params.name - The name of the word
+   * @param {string|null} [params.prefix=null] - Optional prefix for the word
+   * @param {Function} params.implementation - The implementation function
+   * @param {('word'|'variable'|'control'|'value'|'String'|'Number')} [params.type='word'] - The type of word
+   * @param {Object} [params._meta={}] - Metadata about the word
+   * @param {[number, number]} [params._meta.loc] - Source location [line, column]
+   * @param {string} [params._meta.source] - Source of the word (e.g. 'userInput', 'forthStdLib', 'HydraDevice', etc)
+   * @param {string} [params._meta.stack] - Stack effect comment (e.g. "( n1 n2 -- n3 )")
+   * @param {[number, number]} [params._meta.arities] - Input/output arities [inputs, outputs]
+   * @param {string} [params._meta.doc] - Documentation string
+   */
   constructor({
     name,
     prefix = null,
     implementation,
-    isControlCode = false,
-    code = null,
+    type = "word",
+    _meta = {},
   }) {
     this.name = name;
     this.prefix = prefix;
     this._implementation = implementation;
-    this.isControlCode = isControlCode;
-    this.code = code;
+    this.type = type;
+    this._meta = _meta;
   }
 
   execute(context) {
-    // No 'next' callback
     console.log(`AwwWord.execute() called for word: ${this.name}`);
-
-    if (this.isControlCode) {
-      console.log(`AwwWord Control code execution for: ${this.code}`);
-      return { code: this.code }; // Return the control code object directly. No execution yet
+    if (this.type === "control") {
+      console.log(`AwwWord Control code execution for: ${this._meta.code}`);
+      return { code: this._meta.code };
     }
-    this._implementation(context); // Directly call the implementation
+    this._implementation(context);
   }
 
   toString() {
     console.log(`AwwWord toString for: ${this.name}`);
-
-    if (this.isControlCode) {
-      return `[Control: ${this.code}]`;
+    if (this.type === "control") {
+      return `[Control: ${this._meta.code}]`;
     }
-
     const prefixStr = this.prefix ? `${this.prefix} ` : "";
     if (!this._implementation) {
       console.warn(`No implementation for word: ${this.name}`);
       return `${prefixStr}${this.name}`;
     }
-
-    // Avoid calling toString() on AwwWord instances
-    // inifinit recursion!!!
     let funcStr;
     if (typeof this._implementation === "function") {
       funcStr = this._implementation
         .toString()
-        .replace(/^\s*function\s*\([^)]*\)\s*{\s*([\s\S]*?)\s*}\s*$/, "$1") // Extract function body
+        .replace(/^\s*function\s*\([^)]*\)\s*{\s*([\s\S]*?)\s*}\s*$/, "$1")
         .trim()
         .split("\n")
         .map((line) => line.trim())
@@ -1498,7 +1557,6 @@ class AwwWord {
     } else {
       funcStr = "[Unknown Implementation]";
     }
-
     return `${prefixStr}${this.name} ( ${funcStr} )`;
   }
 
