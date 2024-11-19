@@ -21,33 +21,39 @@ if (typeof window !== 'undefined' && !window.process) {
   };
 }
 
+var i=Symbol.for("preact-signals");function t(){if(!(s>1)){var i,t=!1;while(void 0!==h){var r=h;h=void 0;f++;while(void 0!==r){var o=r.o;r.o=void 0;r.f&=-3;if(!(8&r.f)&&c(r))try{r.c();}catch(r){if(!t){i=r;t=!0;}}r=o;}}f=0;s--;if(t)throw i}else s--;}var o=void 0;var h=void 0,s=0,f=0,v=0;function e(i){if(void 0!==o){var t=i.n;if(void 0===t||t.t!==o){t={i:0,S:i,p:o.s,n:void 0,t:o,e:void 0,x:void 0,r:t};if(void 0!==o.s)o.s.n=t;o.s=t;i.n=t;if(32&o.f)i.S(t);return t}else if(-1===t.i){t.i=0;if(void 0!==t.n){t.n.p=t.p;if(void 0!==t.p)t.p.n=t.n;t.p=o.s;t.n=void 0;o.s.n=t;o.s=t;}return t}}}function u(i){this.v=i;this.i=0;this.n=void 0;this.t=void 0;}u.prototype.brand=i;u.prototype.h=function(){return !0};u.prototype.S=function(i){if(this.t!==i&&void 0===i.e){i.x=this.t;if(void 0!==this.t)this.t.e=i;this.t=i;}};u.prototype.U=function(i){if(void 0!==this.t){var t=i.e,r=i.x;if(void 0!==t){t.x=r;i.e=void 0;}if(void 0!==r){r.e=t;i.x=void 0;}if(i===this.t)this.t=r;}};u.prototype.subscribe=function(i){var t=this;return E(function(){var r=t.value,n=o;o=void 0;try{i(r);}finally{o=n;}})};u.prototype.valueOf=function(){return this.value};u.prototype.toString=function(){return this.value+""};u.prototype.toJSON=function(){return this.value};u.prototype.peek=function(){var i=o;o=void 0;try{return this.value}finally{o=i;}};Object.defineProperty(u.prototype,"value",{get:function(){var i=e(this);if(void 0!==i)i.i=this.i;return this.v},set:function(i){if(i!==this.v){if(f>100)throw new Error("Cycle detected");this.v=i;this.i++;v++;s++;try{for(var r=this.t;void 0!==r;r=r.x)r.t.N();}finally{t();}}}});function d(i){return new u(i)}function c(i){for(var t=i.s;void 0!==t;t=t.n)if(t.S.i!==t.i||!t.S.h()||t.S.i!==t.i)return !0;return !1}function a(i){for(var t=i.s;void 0!==t;t=t.n){var r=t.S.n;if(void 0!==r)t.r=r;t.S.n=t;t.i=-1;if(void 0===t.n){i.s=t;break}}}function l(i){var t=i.s,r=void 0;while(void 0!==t){var o=t.p;if(-1===t.i){t.S.U(t);if(void 0!==o)o.n=t.n;if(void 0!==t.n)t.n.p=o;}else r=t;t.S.n=t.r;if(void 0!==t.r)t.r=void 0;t=o;}i.s=r;}function y(i){u.call(this,void 0);this.x=i;this.s=void 0;this.g=v-1;this.f=4;}(y.prototype=new u).h=function(){this.f&=-3;if(1&this.f)return !1;if(32==(36&this.f))return !0;this.f&=-5;if(this.g===v)return !0;this.g=v;this.f|=1;if(this.i>0&&!c(this)){this.f&=-2;return !0}var i=o;try{a(this);o=this;var t=this.x();if(16&this.f||this.v!==t||0===this.i){this.v=t;this.f&=-17;this.i++;}}catch(i){this.v=i;this.f|=16;this.i++;}o=i;l(this);this.f&=-2;return !0};y.prototype.S=function(i){if(void 0===this.t){this.f|=36;for(var t=this.s;void 0!==t;t=t.n)t.S.S(t);}u.prototype.S.call(this,i);};y.prototype.U=function(i){if(void 0!==this.t){u.prototype.U.call(this,i);if(void 0===this.t){this.f&=-33;for(var t=this.s;void 0!==t;t=t.n)t.S.U(t);}}};y.prototype.N=function(){if(!(2&this.f)){this.f|=6;for(var i=this.t;void 0!==i;i=i.x)i.t.N();}};Object.defineProperty(y.prototype,"value",{get:function(){if(1&this.f)throw new Error("Cycle detected");var i=e(this);this.h();if(void 0!==i)i.i=this.i;if(16&this.f)throw this.v;return this.v}});function w(i){return new y(i)}function _(i){var r=i.u;i.u=void 0;if("function"==typeof r){s++;var n=o;o=void 0;try{r();}catch(t){i.f&=-2;i.f|=8;g(i);throw t}finally{o=n;t();}}}function g(i){for(var t=i.s;void 0!==t;t=t.n)t.S.U(t);i.x=void 0;i.s=void 0;_(i);}function p(i){if(o!==this)throw new Error("Out-of-order effect");l(this);o=i;this.f&=-2;if(8&this.f)g(this);t();}function b(i){this.x=i;this.u=void 0;this.s=void 0;this.o=void 0;this.f=32;}b.prototype.c=function(){var i=this.S();try{if(8&this.f)return;if(void 0===this.x)return;var t=this.x();if("function"==typeof t)this.u=t;}finally{i();}};b.prototype.S=function(){if(1&this.f)throw new Error("Cycle detected");this.f|=1;this.f&=-9;_(this);a(this);s++;var i=o;o=this;return p.bind(this,i)};b.prototype.N=function(){if(!(2&this.f)){this.f|=2;this.o=h;h=this;}};b.prototype.d=function(){this.f|=8;if(!(1&this.f))g(this);};function E(i){var t=new b(i);try{t.c();}catch(i){t.d();throw i}return t.d.bind(t)}
+
 function StackUnderflowError(name) {
   console.warn("Stack underflow in " + name);
   this.message = "Stack underflow in " + name;
 }
 
 function Stack(name) {
-  var arr = [];
+  let stackArray = d([]);
+  const stackString = w(() => stackArray.value.join(" "));
+  const stackPrint = w(() => stackString.value + " ← Top ");
+  const stackTOP = w(() => stackArray.value[stackArray.value.length - 1]);
+
+
 
   return {
     push: function (item) {
-      arr.push(item);
+      stackArray.value.push(item);
     },
     peek: function (offset) {
       offset = offset || 1;
-      return arr[arr.length - offset];
+      return stackArray.value[stackArray.value.length - offset];
     },
     pop: function () {
-      if (arr.length > 0) {
-        return arr.pop();
+      if (stackArray.value.length > 0) {
+        return stackArray.value.pop();
       } else {
         throw new StackUnderflowError(name);
       }
     },
-    print: function () {
-      return arr.join(" ") + " ← Top ";
-    },
-
+    printSignal: stackPrint,
+    topSignal: stackTOP,
+    stackSignal: stackArray,
     /**
      * Gets specified number of arguments from the stack, with default values if stack underflows
      * @param {number} count - Number of arguments to get from stack
@@ -55,7 +61,7 @@ function Stack(name) {
      * @returns {Array<*>} Array of arguments popped from stack (or defaults if underflow)
      */
     getArgs(count, defaults) {
-      console.log("getArgs() stack:", this.print(), "defaults: ", defaults);
+      console.log("getArgs() stack:", this.printSignal.value, "defaults: ", defaults);
       const args = [];
       try {
         for (let i = 0; i < count; i++) {
@@ -73,14 +79,14 @@ function Stack(name) {
 }
 
 function Dictionary() {
-  var dict = new Map();
-  let redefinedWords = new Map();
+  var dict = d(new Map());
+  let redefinedWords = d(new Map());
 
   function add(name, definition, isPermanent = false) {
     if (name === null || name === undefined) {
       throw new Error("Can't add null name");
     }
-    dict.set(name.toLowerCase(), [definition, isPermanent]);
+    dict.value.set(name.toLowerCase(), [definition, isPermanent]);
   }
 
   function lookup(key) {
@@ -97,7 +103,7 @@ function Dictionary() {
       }
       seenWords.add(key);
 
-      let redefinedWord = redefinedWords.get(key);
+      let redefinedWord = redefinedWords.value.get(key);
       if (redefinedWord) {
         const [definition, _] = redefinedWord;
         if (definition === null) {
@@ -113,7 +119,7 @@ function Dictionary() {
         continue;
       }
 
-      var item = dict.get(key);
+      var item = dict.value.get(key);
       if (!item) {
         return null;
       }
@@ -124,7 +130,7 @@ function Dictionary() {
 
   function redefine(key, newDefinition, isPermanent) {
     key = key.toLowerCase();
-    let isInDict = dict.has(key) || redefinedWords.has(key);
+    let isInDict = dict.value.has(key) || redefinedWords.value.has(key);
 
     if (isInDict) {
       throw new Error(
@@ -137,7 +143,7 @@ function Dictionary() {
 
   function isPermanent(key) {
     key = key.toLowerCase();
-    let item = dict.get(key) || redefinedWords.get(key);
+    let item = dict.value.get(key) || redefinedWords.value.get(key);
 
     if (!item) {
       throw new Error("Word not found in dictionary: " + key);
@@ -154,36 +160,33 @@ function Dictionary() {
     };
   }
 
-  function resolvedDict() {
-    // Create a new Map for the resolved dictionary
-    const resolvedDict = new Map();
+  const resolvedDict = w(() => {
+    const resolved = new Map();
 
-    // First add all non-redefined words from the original dictionary
-    for (const [key, [definition, isPermanent]] of dict) {
-      resolvedDict.set(key, [definition, isPermanent]);
+    for (const [key, [definition, isPermanent]] of dict.value) {
+      resolved.set(key, [definition, isPermanent]);
     }
 
-    // Resolve all redefined words
-    for (const [key, [definition, isPermanent]] of redefinedWords) {
+    for (const [key, [definition, isPermanent]] of redefinedWords.value) {
       try {
-        // Use lookup to get the final resolved definition
-        const resolvedDefinition = this.lookup(key);
-        resolvedDict.set(key, [resolvedDefinition, isPermanent]);
+        const resolvedDefinition = lookup(key);
+        resolved.set(key, [resolvedDefinition, isPermanent]);
       } catch (error) {
-        // Skip any circular definitions or invalid references
         console.warn(
           `Skipping invalid redefinition for '${key}': ${error.message}`,
         );
       }
     }
 
-    return resolvedDict;
-  }
+    return resolved;
+  });
 
   return {
     get dict() {
       return resolvedDict();
     },
+    resolvedDictSignal: resolvedDict,
+    redefinedWordsSignal: redefinedWords,
     add: add,
     lookup: lookup,
     isPermanent: isPermanent,
@@ -192,17 +195,15 @@ function Dictionary() {
   };
 }
 
-var i=Symbol.for("preact-signals");function t(){if(!(s>1)){var i,t=!1;while(void 0!==h){var r=h;h=void 0;f++;while(void 0!==r){var o=r.o;r.o=void 0;r.f&=-3;if(!(8&r.f)&&c(r))try{r.c();}catch(r){if(!t){i=r;t=!0;}}r=o;}}f=0;s--;if(t)throw i}else s--;}var o=void 0;var h=void 0,s=0,f=0,v=0;function e(i){if(void 0!==o){var t=i.n;if(void 0===t||t.t!==o){t={i:0,S:i,p:o.s,n:void 0,t:o,e:void 0,x:void 0,r:t};if(void 0!==o.s)o.s.n=t;o.s=t;i.n=t;if(32&o.f)i.S(t);return t}else if(-1===t.i){t.i=0;if(void 0!==t.n){t.n.p=t.p;if(void 0!==t.p)t.p.n=t.n;t.p=o.s;t.n=void 0;o.s.n=t;o.s=t;}return t}}}function u(i){this.v=i;this.i=0;this.n=void 0;this.t=void 0;}u.prototype.brand=i;u.prototype.h=function(){return !0};u.prototype.S=function(i){if(this.t!==i&&void 0===i.e){i.x=this.t;if(void 0!==this.t)this.t.e=i;this.t=i;}};u.prototype.U=function(i){if(void 0!==this.t){var t=i.e,r=i.x;if(void 0!==t){t.x=r;i.e=void 0;}if(void 0!==r){r.e=t;i.x=void 0;}if(i===this.t)this.t=r;}};u.prototype.subscribe=function(i){var t=this;return E(function(){var r=t.value,n=o;o=void 0;try{i(r);}finally{o=n;}})};u.prototype.valueOf=function(){return this.value};u.prototype.toString=function(){return this.value+""};u.prototype.toJSON=function(){return this.value};u.prototype.peek=function(){var i=o;o=void 0;try{return this.value}finally{o=i;}};Object.defineProperty(u.prototype,"value",{get:function(){var i=e(this);if(void 0!==i)i.i=this.i;return this.v},set:function(i){if(i!==this.v){if(f>100)throw new Error("Cycle detected");this.v=i;this.i++;v++;s++;try{for(var r=this.t;void 0!==r;r=r.x)r.t.N();}finally{t();}}}});function d(i){return new u(i)}function c(i){for(var t=i.s;void 0!==t;t=t.n)if(t.S.i!==t.i||!t.S.h()||t.S.i!==t.i)return !0;return !1}function a(i){for(var t=i.s;void 0!==t;t=t.n){var r=t.S.n;if(void 0!==r)t.r=r;t.S.n=t;t.i=-1;if(void 0===t.n){i.s=t;break}}}function l(i){var t=i.s,r=void 0;while(void 0!==t){var o=t.p;if(-1===t.i){t.S.U(t);if(void 0!==o)o.n=t.n;if(void 0!==t.n)t.n.p=o;}else r=t;t.S.n=t.r;if(void 0!==t.r)t.r=void 0;t=o;}i.s=r;}function y(i){u.call(this,void 0);this.x=i;this.s=void 0;this.g=v-1;this.f=4;}(y.prototype=new u).h=function(){this.f&=-3;if(1&this.f)return !1;if(32==(36&this.f))return !0;this.f&=-5;if(this.g===v)return !0;this.g=v;this.f|=1;if(this.i>0&&!c(this)){this.f&=-2;return !0}var i=o;try{a(this);o=this;var t=this.x();if(16&this.f||this.v!==t||0===this.i){this.v=t;this.f&=-17;this.i++;}}catch(i){this.v=i;this.f|=16;this.i++;}o=i;l(this);this.f&=-2;return !0};y.prototype.S=function(i){if(void 0===this.t){this.f|=36;for(var t=this.s;void 0!==t;t=t.n)t.S.S(t);}u.prototype.S.call(this,i);};y.prototype.U=function(i){if(void 0!==this.t){u.prototype.U.call(this,i);if(void 0===this.t){this.f&=-33;for(var t=this.s;void 0!==t;t=t.n)t.S.U(t);}}};y.prototype.N=function(){if(!(2&this.f)){this.f|=6;for(var i=this.t;void 0!==i;i=i.x)i.t.N();}};Object.defineProperty(y.prototype,"value",{get:function(){if(1&this.f)throw new Error("Cycle detected");var i=e(this);this.h();if(void 0!==i)i.i=this.i;if(16&this.f)throw this.v;return this.v}});function w(i){return new y(i)}function _(i){var r=i.u;i.u=void 0;if("function"==typeof r){s++;var n=o;o=void 0;try{r();}catch(t){i.f&=-2;i.f|=8;g(i);throw t}finally{o=n;t();}}}function g(i){for(var t=i.s;void 0!==t;t=t.n)t.S.U(t);i.x=void 0;i.s=void 0;_(i);}function p(i){if(o!==this)throw new Error("Out-of-order effect");l(this);o=i;this.f&=-2;if(8&this.f)g(this);t();}function b(i){this.x=i;this.u=void 0;this.s=void 0;this.o=void 0;this.f=32;}b.prototype.c=function(){var i=this.S();try{if(8&this.f)return;if(void 0===this.x)return;var t=this.x();if("function"==typeof t)this.u=t;}finally{i();}};b.prototype.S=function(){if(1&this.f)throw new Error("Cycle detected");this.f|=1;this.f&=-9;_(this);a(this);s++;var i=o;o=this;return p.bind(this,i)};b.prototype.N=function(){if(!(2&this.f)){this.f|=2;this.o=h;h=this;}};b.prototype.d=function(){this.f|=8;if(!(1&this.f))g(this);};function E(i){var t=new b(i);try{t.c();}catch(i){t.d();throw i}return t.d.bind(t)}
-
 function Memory() {
   const memoryBlocks = d(new Map()); // Track named memory blocks
   const memArray = d(new Array(65536).fill(0)); // Use signal for memory array
   const subscribers = new Map(); // Track memory change subscribers
-  let _memPointer = 1000;
+  let _memPointer = d(1000);
 
   function newMemPointer(size = 1) {
-    const pointer = _memPointer;
-    _memPointer += size;
+    const pointer = _memPointer.value;
+    _memPointer.value += size;
     return pointer;
   }
 
@@ -305,7 +306,9 @@ function Memory() {
     allocateBlock,
     subscribe,
     getMemoryMap,
-    print
+    print,
+    memArraySignal: memArray,
+    memoryBlocksSignal: memoryBlocks
   };
 }
 
@@ -1002,8 +1005,9 @@ function createLogger(initialLevel = LogLevel.INFO) {
 }
 
 class Device {
-  constructor(namespace) {
+  constructor(namespace, description) {
     this.namespace = namespace;
+    this.description = description;
     this.ports = {}; // Will be defined by child classes
     this.portAddresses = null; // Will be set by DeviceManager
     this.portSubscriptions = new Map();
@@ -1070,9 +1074,82 @@ class Device {
   }
 
   // Override these in child classes
-  registerWords(addWordCallback) {}
+  registerWords(addWordCallback) {
+    for (const [portName, portConfig] of Object.entries(this.ports)) {
+      addWordCallback(portName, (context) => {
+        context.stack.push(this.getPortValue(portName));
+      }, {
+        type: 'variable',
+        _meta: {
+          source: this.namespace,
+          description: portConfig.description,
+          access: portConfig.access,
+          size: portConfig.size
+        }
+      });
+    }
+  }
+
   initialize(context) {
     this.context = context;
+  }
+
+  printDeviceOverview(commandsDictionary) {
+    const header = `
+    🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌼🌺
+    🌼          Device Overview          🌼
+    🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌼🌺
+    `;
+    const nameDescription = `
+    🌷 Name: ${this.namespace}
+    🌻 Description: ${this.description}
+    🌼 Main Port: ${Object.keys(this.ports)[0] || 'N/A'}
+    `;
+    
+    const portHeader = `
+    🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌼
+    🌼              Ports               🌼
+    🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌼
+    `;
+    
+    let portOverview = '';
+    let detailedList = '';
+    let index = 0;
+    
+    for (const [portName, portConfig] of Object.entries(this.ports)) {
+      const address = this.getPortAddress(portName) || '??';
+      const value = this.getPortValue(portName) || '??';
+      const line = `${address}\t${portName.padEnd(8, ' ')}\t${(index % 2 === 0) ? '' : '\n'}`;
+      portOverview += line;
+      
+      detailedList += `
+      🌼 Port: ${portName}
+      🌻 Description: ${portConfig.description}
+      🌷 Access: ${portConfig.access}
+      🌼 Size: ${portConfig.size}
+      🌻 Current Value: ${value}
+      `;
+      
+      index++;
+    }
+    
+    const commandHeader = `
+    🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺
+    🌼             Commands            🌼
+    🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺🌸🌼🌺
+    `;
+    
+    let commandList = '';
+    for (const [commandName, commandConfig] of Object.entries(commandsDictionary)) {
+      if (commandConfig._meta.source === this.namespace && commandConfig.type === 'function') {
+        commandList += `
+        🌷 ${commandName} ${commandConfig._meta.stackEffect}\n
+        🌻 Description: ${commandConfig._meta.description}\n
+        `;
+      }
+    }
+
+    console.log(header + nameDescription + portHeader + portOverview + detailedList + commandHeader + commandList);
   }
 }
 
@@ -1132,6 +1209,12 @@ class DeviceManager {
 
   getPortMapping(address) {
     return this.portMap.value.get(address);
+  }
+
+  printDeviceOverview(commandsDictionary) {
+    for (const device of this.devices.value.values()) {
+      device.printDeviceOverview(commandsDictionary);
+    }
   }
 
   // This method will be called by the VM to register device words
@@ -1247,9 +1330,9 @@ class AwwVM {
 
     return {
       output: this.output.value,
-      stack: this.stack.value.print(),
+      stack: this.stack.value.printSignal.value,
       parsedTokens: this.parsedTokens.value,
-      memory: this.memory.value,
+      memory: this.memory.value.print(),
       dictionary: this.dictionary.value,
     };
   }
@@ -1458,6 +1541,10 @@ class AwwVM {
     return this.logs;
   }
 
+  getLogger() {
+    return this.logger;
+  }
+
   getStackSignal() {
     return this.stack;
   }
@@ -1485,9 +1572,12 @@ class AwwVM {
   getCurrentDefinitionSignal() {
     return this.currentDefinition;
   }
+  getDeviceSignal() {
+    return this.deviceManager.devices;
+  }
 
-  getDeviceManagerSignal() {
-    return this.deviceManager;
+  getDeviceOverviewAsci() {
+    return this.deviceManager.printDeviceOverview;
   }
 }
 
@@ -1780,173 +1870,184 @@ class HydraDevice extends Device {
     this.synth = hydra.synth;
   }
 
+  registerWords(addWord) {
+    const addWordWithMeta = (name, implementation, description, args = []) => {
+      const stackEffect = args.length > 0 ? `(${args.join(' ')} -- )` : "( -- )";
+      addWord(name, implementation, {
+        type: 'function',
+        _meta: { 
+          description,
+          stackEffect,
+          source: this.namespace
+        }
+      });
+    };
 
-  registerWords(addWord) {  
+    addWordWithMeta(`osc`, (context) => {
+      const [freq = 60, sync = 0.1, offset = 0] = context.stack.getArgs(3, [60, 0.1, 0]);
+      console.log("osc() freq:", freq, "sync:", sync, "offset:", offset);
+      this.currentChain = this.synth.osc(freq, sync, offset);
+    }, "Generates an oscillating signal", ["freq", "sync", "offset"]);
 
-    addWord(`osc`, (context) => {
-        const [freq = 60, sync = 0.1, offset = 0] = context.stack.getArgs(3, [60, 0.1, 0]);
-        console.log("osc() freq:", freq, "sync:", sync, "offset:", offset);
-        this.currentChain = this.synth.osc(freq, sync, offset);
-    });
+    addWordWithMeta(`solid`, (context) => {
+      const [r = 0, g = 0, b = 0, a = 1] = context.stack.getArgs(4, [0, 0, 0, 1]);
+      this.currentChain = this.synth.solid(r, g, b, a);
+    }, "Creates a solid color", ["r", "g", "b", "a"]);
 
-    addWord(`solid`, (context) => {
-        const [r = 0, g = 0, b = 0, a = 1] = context.stack.getArgs(4, [0, 0, 0, 1]);
-        this.currentChain = this.synth.solid(r, g, b, a);
-    });
+    addWordWithMeta(`noise`, (context) => {
+      const [scale = 10, offset = 0.1] = context.stack.getArgs(2, [10, 0.1]);
+      this.currentChain = this.synth.noise(scale, offset);
+    }, "Generates noise texture", ["scale", "offset"]);
 
-    addWord(`noise`, (context) => {
-        const [scale = 10, offset = 0.1] = context.stack.getArgs(2, [10, 0.1]);
-        this.currentChain = this.synth.noise(scale, offset);
-    });
+    addWordWithMeta(`voronoi`, (context) => {
+      const [scale = 5, speed = 0.3, blending = 0.3] = context.stack.getArgs(3, [5, 0.3, 0.3]);
+      this.currentChain = this.synth.voronoi(scale, speed, blending);
+    }, "Generates voronoi texture", ["scale", "speed", "blending"]);
 
-        addWord(`voronoi`, (context) => {
-        const [scale = 5, speed = 0.3, blending = 0.3] = context.stack.getArgs(3, [5, 0.3, 0.3]);
-        this.currentChain = this.synth.voronoi(scale, speed, blending);
-    });
-
-    addWord(`shape`, (context) => {
-        const [sides = 3, radius = 0.3, smoothing = 0.01] = context.stack.getArgs(3, [3, 0.3, 0.01]);
-        this.currentChain = this.synth.shape(sides, radius, smoothing);
-    });
+    addWordWithMeta(`shape`, (context) => {
+      const [sides = 3, radius = 0.3, smoothing = 0.01] = context.stack.getArgs(3, [3, 0.3, 0.01]);
+      this.currentChain = this.synth.shape(sides, radius, smoothing);
+    }, "Generates a shape", ["sides", "radius", "smoothing"]        );
 
     // Geometry
-    addWord(`rotate`, (context) => {
-        const [angle = 10, speed = 0] = context.stack.getArgs(2, [10, 0]);
-        if (!this.currentChain) throw new Error("No active hydra chain");
-        this.currentChain = this.currentChain.rotate(angle, speed);
-    });
+    addWordWithMeta(`rotate`, (context) => {
+      const [angle = 10, speed = 0] = context.stack.getArgs(2, [10, 0]);
+      if (!this.currentChain) throw new Error("No active hydra chain");
+      this.currentChain = this.currentChain.rotate(angle, speed);
+    }, "Rotates the current chain", ["angle", "speed"]);
 
-    addWord(`scale`, (context) => {
-        const [amount = 1.5] = context.stack.getArgs(1, [1.5]);
-        if (!this.currentChain) throw new Error("No active hydra chain");
-        this.currentChain = this.currentChain.scale(amount);
-    });
+    addWordWithMeta(`scale`, (context) => {
+      const [amount = 1.5] = context.stack.getArgs(1, [1.5]);
+      if (!this.currentChain) throw new Error("No active hydra chain");
+      this.currentChain = this.currentChain.scale(amount);
+    }, "Scales the current chain", ["amount"]);
 
-    addWord(`pixelate`, (context) => {
-        const [pixelX = 20, pixelY = 20] = context.stack.getArgs(2, [20, 20]);
-        if (!this.currentChain) throw new Error("No active hydra chain");
-        this.currentChain = this.currentChain.pixelate(pixelX, pixelY);
-    });
+    addWordWithMeta(`pixelate`, (context) => {
+      const [pixelX = 20, pixelY = 20] = context.stack.getArgs(2, [20, 20]);
+      if (!this.currentChain) throw new Error("No active hydra chain");
+      this.currentChain = this.currentChain.pixelate(pixelX, pixelY);
+    }, "Pixelates the current chain", ["pixelX", "pixelY"]);
 
-    addWord(`kaleid`, (context) => {
-        const [nSides = 4] = context.stack.getArgs(1, [4]);
-        if (!this.currentChain) throw new Error("No active hydra chain");
-        this.currentChain = this.currentChain.kaleid(nSides);
-    });
+    addWordWithMeta(`kaleid`, (context) => {
+      const [nSides = 4] = context.stack.getArgs(1, [4]);
+      if (!this.currentChain) throw new Error("No active hydra chain");
+      this.currentChain = this.currentChain.kaleid(nSides);
+    }, "Generates a kaleidoscopic effect", ["nSides"]);
 
     // Color
-    addWord(`colorama`, (context) => {
-        const [amount = 0.005] = context.stack.getArgs(1, [0.005]);
-        if (!this.currentChain) throw new Error("No active hydra chain");
-        this.currentChain = this.currentChain.colorama(amount);
-    });
+    addWordWithMeta(`colorama`, (context) => {
+      const [amount = 0.005] = context.stack.getArgs(1, [0.005]);
+      if (!this.currentChain) throw new Error("No active hydra chain");
+      this.currentChain = this.currentChain.colorama(amount);
+    }, "Applies colorama effect", ["amount"]);
 
-    addWord(`contrast`, (context) => {
-        const [amount = 1.6] = context.stack.getArgs(1, [1.6]);
-        if (!this.currentChain) throw new Error("No active hydra chain");
-        this.currentChain = this.currentChain.contrast(amount);
-    });
+    addWordWithMeta(`contrast`, (context) => {
+      const [amount = 1.6] = context.stack.getArgs(1, [1.6]);
+      if (!this.currentChain) throw new Error("No active hydra chain");
+      this.currentChain = this.currentChain.contrast(amount);
+    }, "Applies contrast effect", ["amount"]);
 
-    addWord(`brightness`, (context) => {
-        const [amount = 0.4] = context.stack.getArgs(1, [0.4]);
-        if (!this.currentChain) throw new Error("No active hydra chain");
-        this.currentChain = this.currentChain.brightness(amount);
-    });
+    addWordWithMeta(`brightness`, (context) => {
+      const [amount = 0.4] = context.stack.getArgs(1, [0.4]);
+      if (!this.currentChain) throw new Error("No active hydra chain");
+      this.currentChain = this.currentChain.brightness(amount);
+    }, "Applies brightness effect", ["amount"]);
 
-    addWord(`posterize`, (context) => {
-        const [bins = 3, gamma = 0.6] = context.stack.getArgs(2, [3, 0.6]);
-        if (!this.currentChain) throw new Error("No active hydra chain");
-        this.currentChain = this.currentChain.posterize(bins, gamma);
-    });
+    addWordWithMeta(`posterize`, (context) => {
+      const [bins = 3, gamma = 0.6] = context.stack.getArgs(2, [3, 0.6]);
+      if (!this.currentChain) throw new Error("No active hydra chain");
+      this.currentChain = this.currentChain.posterize(bins, gamma);
+    }, "Applies posterize effect", ["bins", "gamma"]);
 
     // Blend modes
-    addWord(`blend`, (context) => {
-        const [texture, amount = 0.5] = context.stack.getArgs(2, [null, 0.5]);
-        if (!this.currentChain) throw new Error("No active hydra chain");
-        this.currentChain = this.currentChain.blend(texture, amount);
-    });
+    addWordWithMeta(`blend`, (context) => {
+      const [texture, amount = 0.5] = context.stack.getArgs(2, [null, 0.5]);
+      if (!this.currentChain) throw new Error("No active hydra chain");
+      this.currentChain = this.currentChain.blend(texture, amount);
+    }, "Blends the current chain with the given texture", ["texture", "amount"]);
 
-    addWord(`diff`, (context) => {
-        const [texture] = context.stack.getArgs(1, [null]);
-        if (!this.currentChain) throw new Error("No active hydra chain");
-        this.currentChain = this.currentChain.diff(texture);
-    });
+    addWordWithMeta(`diff`, (context) => {
+      const [texture] = context.stack.getArgs(1, [null]);
+      if (!this.currentChain) throw new Error("No active hydra chain");
+      this.currentChain = this.currentChain.diff(texture);
+    }, "Applies difference effect", ["texture"]);
 
-    addWord(`mult`, (context) => {
-        const [texture, amount = 1] = context.stack.getArgs(2, [null, 1]);
-        if (!this.currentChain) throw new Error("No active hydra chain");
-        this.currentChain = this.currentChain.mult(texture, amount);
-    });
+    addWordWithMeta(`mult`, (context) => {
+      const [texture, amount = 1] = context.stack.getArgs(2, [null, 1]);
+      if (!this.currentChain) throw new Error("No active hydra chain");
+      this.currentChain = this.currentChain.mult(texture, amount);
+    }, "Multiplies the current chain with the given texture", ["texture", "amount"]);
 
-    addWord(`add`, (context) => {
-        const [texture, amount = 0.5] = context.stack.getArgs(2, [null, 0.5]);
-        if (!this.currentChain) throw new Error("No active hydra chain");
-        this.currentChain = this.currentChain.add(texture, amount);
-    });
+    addWordWithMeta(`add`, (context) => {
+      const [texture, amount = 0.5] = context.stack.getArgs(2, [null, 0.5]);
+      if (!this.currentChain) throw new Error("No active hydra chain");
+      this.currentChain = this.currentChain.add(texture, amount);
+    }, "Adds the given texture to the current chain", ["texture", "amount"]);
 
     // Modulate
-    addWord(`modulate`, (context) => {
-        const [texture, amount = 0.1] = context.stack.getArgs(2, [null, 0.1]);
-        if (!this.currentChain) throw new Error("No active hydra chain");
-        this.currentChain = this.currentChain.modulate(texture, amount);
-    });
+    addWordWithMeta(`modulate`, (context) => {
+      const [texture, amount = 0.1] = context.stack.getArgs(2, [null, 0.1]);
+      if (!this.currentChain) throw new Error("No active hydra chain");
+      this.currentChain = this.currentChain.modulate(texture, amount);
+    }, "Modulates the current chain with the given texture", ["texture", "amount"]);
 
-    addWord(`modulateScale`, (context) => {
-        const [texture, multiple = 1, offset = 1] = context.stack.getArgs(3, [null, 1, 1]);
-        if (!this.currentChain) throw new Error("No active hydra chain");
-        this.currentChain = this.currentChain.modulateScale(texture, multiple, offset);
-    });
+    addWordWithMeta(`modulateScale`, (context) => {
+      const [texture, multiple = 1, offset = 1] = context.stack.getArgs(3, [null, 1, 1]);
+      if (!this.currentChain) throw new Error("No active hydra chain");
+      this.currentChain = this.currentChain.modulateScale(texture, multiple, offset);
+    }, "Modulates the scale of the current chain", ["texture", "multiple", "offset"]);
 
-    addWord(`modulatePixelate`, (context) => {
-        const [texture, multiple = 10, offset = 3] = context.stack.getArgs(3, [null, 10, 3]);
-        if (!this.currentChain) throw new Error("No active hydra chain");
-        this.currentChain = this.currentChain.modulatePixelate(texture, multiple, offset);
-    });
+    addWordWithMeta(`modulatePixelate`, (context) => {
+      const [texture, multiple = 10, offset = 3] = context.stack.getArgs(3, [null, 10, 3]);
+      if (!this.currentChain) throw new Error("No active hydra chain");
+      this.currentChain = this.currentChain.modulatePixelate(texture, multiple, offset);
+    }, "Modulates the pixelate of the current chain", ["texture", "multiple", "offset"]);
 
     // Output functions
-    addWord(`out`, (context) => {
-        const [buffer = 0] = context.stack.getArgs(1, [0]);
-        console.log("out() currentChain:", this.currentChain);
-        if (!this.currentChain) throw new Error("No active hydra chain");
-        this.currentChain.out(buffer);
-    });
+    addWordWithMeta(`out`, (context) => {
+      const [buffer = 0] = context.stack.getArgs(1, [0]);
+      console.log("out() currentChain:", this.currentChain);
+      if (!this.currentChain) throw new Error("No active hydra chain");
+      this.currentChain.out(buffer);
+    }, "Outputs the current chain to the given buffer", ["buffer"]);
 
     // Final evaluation word
-    addWord(`hydra`, (context) => {
-        if (!this.currentChain) throw new Error("No hydra chain to evaluate");
-        console.log("hydra() currentChain:", this.currentChain);
-        // Reset chain after evaluation
-        this.currentChain = null;
-    });
+    addWordWithMeta(`hydra`, (context) => {
+      if (!this.currentChain) throw new Error("No hydra chain to evaluate");
+      console.log("hydra() currentChain:", this.currentChain);
+      // Reset chain after evaluation
+      this.currentChain = null;
+    }, "Evaluates the current chain");
 
     // Buffer management
-    addWord(`src`, (context) => {
-        const [buffer = 0] = context.stack.getArgs(1, [0]);
-        this.currentChain = this.synth.src(buffer);
-    });
+    addWordWithMeta(`src`, (context) => {
+      const [buffer = 0] = context.stack.getArgs(1, [0]);
+      this.currentChain = this.synth.src(buffer);
+    }, "Sets the current chain to the given buffer", ["buffer"]);
 
-    addWord(`vid`, (context) => {
-        const [url = "wrong-side.mp4"] = context.stack.getArgs(1, ["wrong-side.mp4"]);
-        let videoUrl = url;
-        if (!videoUrl.startsWith('http') && !videoUrl.startsWith('www')) {
-            videoUrl = 'https://files.milan.place/' + videoUrl;
-        }
-        context.logger.info('hydra', 'vid() videoUrl:', videoUrl);
-        const video = this.synth.s0.initVideo(videoUrl);
-        context.logger.info('hydra', 'vid() video:', video);
-        this.currentChain = this.synth.src(this.synth.s0).out();        
-    });
+    addWordWithMeta(`vid`, (context) => {
+      const [url = "wrong-side.mp4"] = context.stack.getArgs(1, ["wrong-side.mp4"]);
+      let videoUrl = url;
+      if (!videoUrl.startsWith('http') && !videoUrl.startsWith('www')) {
+        videoUrl = 'https://files.milan.place/' + videoUrl;
+      }
+      context.logger.info('hydra', 'vid() videoUrl:', videoUrl);
+      const video = this.synth.s0.initVideo(videoUrl);
+      context.logger.info('hydra', 'vid() video:', video);
+      this.currentChain = this.synth.src(this.synth.s0).out();        
+    }, "Initializes and outputs the video", ["url"]);
 
-    addWord(`file`, (context) => {
-        const [filename = "example.png"] = context.stack.getArgs(1, [""]);
-        if (!filename) throw new Error("No filename provided for file");
-        context.stack.push('https://files.milan.place/' + filename);
-    });
+    addWordWithMeta(`file`, (context) => {
+      const [filename = "example.png"] = context.stack.getArgs(1, [""]);
+      if (!filename) throw new Error("No filename provided for file");
+      context.stack.push('https://files.milan.place/' + filename);
+    }, "Pushes the given filename to the stack", ["filename"]);
+
     // Render management
-    addWord(`render`, (context) => {
-        const [buffer = 0] = context.stack.getArgs(1, [0]);
-        this.hydra.render(buffer);
-    });
+    addWordWithMeta(`render`, (context) => {
+      const [buffer = 0] = context.stack.getArgs(1, [0]);
+      this.hydra.render(buffer);
+    }, "Renders the current chain", ["buffer"]);
   }
 }
 

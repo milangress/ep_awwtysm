@@ -2,7 +2,7 @@
 
 const {signal, effect} = require('@preact/signals-core');
 const {AwwVM} = require('./lib/AwwVM');
-// const ReplModal = require('./ReplModal');
+const ReplModal = require('./ReplModal');
 
 const Stage = require('./Stage');
 const stage = Stage.getInstance();
@@ -19,19 +19,11 @@ const logs = signal([]);
 const memory = signal(null);
 const awwHistory = signal([]);
 const lineBuffer = signal([]);
+let getDeviceOverviewAsci = signal(null);
 
-// const repl = null;
+let repl = null;
+let awwInstance = null;
 
-
-const handleLogs = (newLogs) => {
-  logs.value.push(newLogs);
-  const logsContainer = $('#awwtysmLogsList');
-  const formattedLog = `[${newLogs.level}] ${newLogs.timestamp}<br>` +
-            `${newLogs.category}: ${newLogs.message}`;
-  logsContainer.prepend(
-      `<p class="awwtysmLog ${newLogs.level}">${formattedLog}</p>`
-  );
-};
 
 (async () => {
   try {
@@ -55,23 +47,46 @@ const handleLogs = (newLogs) => {
     // Create main Aww instance
     console.log('Creating main Aww instance');
     await new Promise((resolve) => {
-      const awwInstance = new AwwVM();
-      awwApi = {readLine: awwInstance.readLine.bind(awwInstance),
+      awwInstance = new AwwVM();
+      awwApi = {
+        readLine: awwInstance.readLine.bind(awwInstance),
         readLines: awwInstance.readLines.bind(awwInstance),
         getDictionary: () => awwInstance.dictionary.value,
         getStack: () => awwInstance.stack.value,
         getParsedTokens: () => awwInstance.parsedTokens.value,
-        getLogs: () => awwInstance.logs.value,
         getMemory: () => awwInstance.memory.value,
-        logsSignalSubscriber: () => awwInstance.getLogsSignal().subscribe(handleLogs)};
+      };
 
+      awwInstance.getLogger().setLogCallback((log) => {
+        console.log('Logging:', log);
+        logs.value = [...logs.value, log]; // Add new log to the array
+        const logsContainer = $('#awwtysmLogsList');
+        const formattedLog = `[${log.level}] ${log.timestamp}<br>` +
+            `${log.category}: ${log.message}`;
+        logsContainer.prepend(
+            `<p class="awwtysmLog ${log.level}">${formattedLog}</p>`
+        );
+      });
+      awwInstance.getStackSignal().subscribe((stack) => {
+        lastStack.value = stack;
+      });
+      awwInstance.getDictionarySignal().subscribe((dictionary) => {
+        currentDictionary.value = dictionary;
+      });
+      awwInstance.getDeviceSignal().subscribe((devices) => {
+        console.log('Devices:', devices);
+        getDeviceOverviewAsci = awwInstance.getDeviceOverviewAsci();
+      });
       resolve();
     });
 
-    // Create REPL instance
-    // console.log('Creating REPL instance');
-    // repl = new ReplModal(hydraInstance, Aww);
-    // console.log('REPL instance created');
+    await new Promise((resolve) => {
+      // Create REPL instance
+      console.log('Creating REPL instance', AwwVM);
+      repl = new ReplModal(AwwVM);
+      console.log('REPL instance created');
+      resolve();
+    });
   } catch (error) {
     console.error('Error during VM initialization:', error);
   }
@@ -146,26 +161,35 @@ effect(() => {
 });
 
 const formatMemory = (memory) => {
+  console.log('Formatting memory:', memory);
   const format = (value) => {
     if (typeof value !== 'number') return value;
     return value.toString(16).padStart(4, '0').toUpperCase();
   };
-  const {variables, memArray, memPointer} = memory;
-  // variables is an objects with key as var_name and value as adress {var_name: adress} u
-  // use object keys to get the var_name
-  const varStrings = Object.keys(variables).map((varName) => {
-    const adress = variables[varName];
-    const formattedValue = memArray[adress];
-    const formattedAdress = format(adress);
-    return `${varName}(${formattedAdress}): ${formattedValue}`;
+
+  const {blocks, totalSize, freeSpace} = memory.memoryMap;
+  const memArray = memory.memArray;
+
+  const blockStrings = blocks.map(({name, address, size, value}) => {
+    const formattedAddress = format(address);
+    const formattedValue = Array.isArray(value)
+      ? value.map(format).join(', ')
+      : format(value);
+    return `${name}(${formattedAddress}): ${formattedValue} [Size: ${size}]`;
   });
+
   const memStrings = memArray.map(
-      (value, index) => `(${format(index)}): ${value}`
+      (value, index) => {
+        if (value === undefined || value === 0 || value === '0') return '';
+        return `(${format(index)}): ${value}`;
+      }
   );
+
   return {
-    memPointer: format(memPointer),
+    memPointer: format(totalSize),
+    freeSpace: format(freeSpace),
+    blockStrings,
     memStrings,
-    varStrings,
   };
 };
 
@@ -174,9 +198,13 @@ const attachMemoryHtml = (containerDOM, formattedMemory) => {
       `<p>Next memory pointer: ${formattedMemory.memPointer}</p>`
   );
   containerDOM.append('<p>Variables:</p>');
-  formattedMemory.varStrings.forEach((varString) => {
-    containerDOM.append(`<p>${varString}</p>`);
-  });
+  if (formattedMemory.blockStrings.length > 0) {
+    formattedMemory.blockStrings.forEach((blockString) => {
+      containerDOM.append(`<p>${blockString}</p>`);
+    });
+  } else {
+    containerDOM.append('<p>No blocks</p>');
+  }
   containerDOM.append('<p>Raw memory:</p>');
   if (formattedMemory.memStrings.length > 0) {
     formattedMemory.memStrings.forEach((memString) => {
@@ -254,6 +282,14 @@ const saveToHistory = (entry) => {
   awwHistory.value.push(historyEntry);
 };
 
+effect(() => {
+  if (!getDeviceOverviewAsci.value) return;
+  console.log('Device overview subscription:', getDeviceOverviewAsci.value);
+  const deviceContainer = $('#awwtysmDeviceOverview');
+  deviceContainer.empty();
+  deviceContainer.append(getDeviceOverviewAsci.value);
+});
+
 // effect(() => {
 //   console.log('Logs:', logs.value);
 //   const logsContainer = $('#awwtysmLogsList');
@@ -264,26 +300,6 @@ const saveToHistory = (entry) => {
 //   });
 // });
 
-const updateDictionary = () => {
-  if (!awwApi) return;
-  currentDictionary.value = awwApi.getDictionary();
-};
-const updateStack = () => {
-  if (!awwApi) return;
-  lastStack.value = awwApi.getStack();
-};
-const updateParsedTokens = () => {
-  if (!awwApi) return;
-  parsedTokens.value = awwApi.getParsedTokens();
-};
-const updateLogs = () => {
-  if (!awwApi) return;
-  logs.value = awwApi.getLogs();
-};
-const updateMemory = () => {
-  if (!awwApi) return;
-  memory.value = awwApi.getMemory();
-};
 
 const addOutput = (line, output) => {
   if (output === undefined) return;
@@ -298,7 +314,7 @@ const addLine = (codeLine) => {
 
 const vm = () => ({
   readLine: (line) => {
-    const previousStack = String(lastStack.value);
+    const previousStack = lastStack.value ? String(lastStack.value) : undefined;
     lastLine.value = line;
     lastOutput.value = [];
 
@@ -309,28 +325,28 @@ const vm = () => ({
 
     // Process each line and collect results
     const results = awwApi.readLines(codeLines);
+    console.log('Results:', results);
+    memory.value = results.memory;
+    parsedTokens.value = results.parsedTokens;
+    lastStack.value = results.stack;
 
     results.forEach((result, index) => {
       const codeLine = codeLines[index];
       addLine(codeLine);
       addOutput(codeLine, result.output);
+
+      saveToHistory({
+        line,
+        output: result.output,
+        stack: result.stack,
+        previousStack,
+        memory: result.memory,
+        parsedTokens: result.parsedTokens,
+      });
     });
+
 
     // Update signals after processing all lines
-    updateStack();
-    updateDictionary();
-    updateParsedTokens();
-    updateLogs();
-    updateMemory();
-
-    saveToHistory({
-      line,
-      output: lastOutput.value,
-      stack: lastStack.value,
-      previousStack,
-      memory: memory.value,
-      parsedTokens: parsedTokens.value,
-    });
 
     return lastOutput.value;
   },
